@@ -1,0 +1,3 @@
+Atlan integrates with Snowflake using secure OAuth authentication.
+You can connect Snowflake from the integrations page in Atlan settings.
+Make sure your Snowflake account has the correct permissions.

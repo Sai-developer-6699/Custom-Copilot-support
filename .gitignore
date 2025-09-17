@@ -24,3 +24,25 @@ dist-ssr
 *.sw?
 
 .env
+
+.venv
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+.env.*
+
+# FAISS and vectorstore
+backend/vectorstore/index.faiss
+backend/vectorstore/meta.pkl
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Misc
+*.swp
+*.swo

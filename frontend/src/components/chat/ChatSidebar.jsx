@@ -6,7 +6,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 
-const ChatSidebar = ({ onSubmit }) => {
+const ChatSidebar = ({ onSubmit, onClose }) => {
   const [query, setQuery] = useState('');
   const [attachedFiles, setAttachedFiles] = useState([]);
   const fileInputRef = useRef(null);
@@ -93,7 +93,7 @@ const ChatSidebar = ({ onSubmit }) => {
   };
 
   return (
-    <div className="w-96 bg-white border-l border-gray-200 flex flex-col h-screen">
+    <div className="w-96 bg-white border-l border-gray-200 flex flex-col fixed top-[84px] right-0 h-[calc(100vh-84px)] flex-shrink-0 z-30">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center space-x-2">
@@ -118,6 +118,18 @@ const ChatSidebar = ({ onSubmit }) => {
           >
             <Settings className="h-4 w-4" />
           </Button>
+          {/* Mobile Close Button */}
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="lg:hidden text-gray-600 hover:text-blue-600 transition-colors"
+              title="Close"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -205,13 +217,13 @@ const ChatSidebar = ({ onSubmit }) => {
       )}
 
       {/* Input Area */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 w-full border-t border-gray-200">
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="flex items-end space-x-2">
+          <div className="flex items-end w-full space-x-2">
             <div className="flex-1 relative">
               <Input
                 type="text"
-                placeholder="Ask me anything about customer support..."
+                placeholder="Type your message here..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="pr-12 border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg"

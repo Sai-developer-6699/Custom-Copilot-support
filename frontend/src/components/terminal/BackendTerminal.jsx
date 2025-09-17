@@ -68,17 +68,17 @@ const BackendTerminal = ({ isVisible, onToggle }) => {
   if (!isVisible) return null;
 
   return (
-    <div className={`fixed bottom-4 right-4 bg-gray-900 text-white rounded-lg shadow-xl border border-gray-700 z-50 transition-all duration-300 ${
+    <div className={`fixed bottom-4 right-4 bg-slate-950 text-green-400 rounded-lg shadow-xl border border-slate-800 z-50 transition-all duration-300 ${
       isMinimized ? 'w-80 h-12' : 'w-96 h-80'
     }`}>
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-gray-700">
+      <div className="flex items-center justify-between p-3 border-b border-slate-800">
         <div className="flex items-center space-x-2">
           <Terminal className="h-4 w-4 text-blue-400" />
           <span className="text-sm font-medium">Backend Terminal</span>
           <div className="flex items-center space-x-1">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-xs text-gray-400">Live</span>
+            <span className="text-xs text-slate-400">Live</span>
           </div>
         </div>
         <div className="flex items-center space-x-1">
@@ -86,7 +86,7 @@ const BackendTerminal = ({ isVisible, onToggle }) => {
             variant="ghost"
             size="sm"
             onClick={() => setIsMinimized(!isMinimized)}
-            className="h-6 w-6 p-0 text-gray-400 hover:text-white hover:bg-gray-700"
+            className="h-6 w-6 p-0 text-slate-400 hover:text-green-400 hover:bg-slate-800"
           >
             {isMinimized ? <Maximize2 className="h-3 w-3" /> : <Minimize2 className="h-3 w-3" />}
           </Button>
@@ -94,7 +94,7 @@ const BackendTerminal = ({ isVisible, onToggle }) => {
             variant="ghost"
             size="sm"
             onClick={onToggle}
-            className="h-6 w-6 p-0 text-gray-400 hover:text-white hover:bg-gray-700"
+            className="h-6 w-6 p-0 text-slate-400 hover:text-green-400 hover:bg-slate-800"
           >
             <X className="h-3 w-3" />
           </Button>
@@ -108,13 +108,13 @@ const BackendTerminal = ({ isVisible, onToggle }) => {
             <div className="space-y-1 font-mono text-xs">
               {logs.map((log) => (
                 <div key={log.id} className="flex items-start space-x-2">
-                  <span className="text-gray-500 text-xs shrink-0">
+                  <span className="text-slate-500 text-xs shrink-0">
                     {formatTimestamp(log.timestamp)}
                   </span>
                   <span className={`text-xs shrink-0 font-semibold ${getLevelColor(log.level)}`}>
                     [{log.level}]
                   </span>
-                  <span className="text-gray-300 text-xs flex-1">
+                  <span className="text-slate-300 text-xs flex-1">
                     {log.message}
                   </span>
                 </div>
@@ -123,7 +123,7 @@ const BackendTerminal = ({ isVisible, onToggle }) => {
           </ScrollArea>
           
           {/* Status bar */}
-          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-gray-500 border-t border-gray-700 pt-2">
+          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-slate-500 border-t border-slate-800 pt-2">
             <div className="flex items-center space-x-2">
               <Activity className="h-3 w-3" />
               <span>CPU: 12% | RAM: 256MB</span>

@@ -13,7 +13,7 @@ const ResponseModal = ({ isOpen, onClose, query }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="bg-gray-50 max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-blue-600 flex items-center">
             <Brain className="h-5 w-5 mr-2" />
