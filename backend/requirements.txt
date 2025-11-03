@@ -5,3 +5,9 @@ faiss-cpu
 python-dotenv
 pydantic
 httpx
+python-multipart
+aiofiles
+PyPDF2
+beautifulsoup4
+requests
+lxml

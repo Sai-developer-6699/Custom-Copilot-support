@@ -8,6 +8,8 @@ import ResponseModal from "./components/chat/ResponseModal";
 import BackendTerminal from "./components/terminal/BackendTerminal";
 import TerminalToggle from "./components/terminal/TerminalToggle";
 import { Toaster } from "./components/ui/toaster";
+import { BackendProvider } from "./contexts/BackendContext";
+import { TicketProvider } from "./contexts/TicketContext";
 import axios from "axios";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -16,17 +18,26 @@ const API = `${BACKEND_URL}/api`;
 const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentQuery, setCurrentQuery] = useState('');
+  const [currentResponse, setCurrentResponse] = useState(null);
   const [isTerminalVisible, setIsTerminalVisible] = useState(false);
   const [isChatSidebarVisible, setIsChatSidebarVisible] = useState(false);
 
-  const handleQuerySubmit = (query) => {
+  const handleQuerySubmit = (query, response = null) => {
     setCurrentQuery(query);
+    setCurrentResponse(response);
     setIsModalOpen(true);
   };
 
   const handleModalClose = () => {
     setIsModalOpen(false);
     setCurrentQuery('');
+    setCurrentResponse(null);
+  };
+
+  const handleTicketClick = (ticket) => {
+    setCurrentQuery(ticket.query);
+    setCurrentResponse(ticket.fullResponse);
+    setIsModalOpen(true);
   };
 
   const toggleTerminal = () => {
@@ -81,7 +92,7 @@ const Dashboard = () => {
               </button>
             </div>
             
-            <TicketTable />
+            <TicketTable onTicketClick={handleTicketClick} />
           </main>
         </div>
 
@@ -109,6 +120,7 @@ const Dashboard = () => {
         isOpen={isModalOpen}
         onClose={handleModalClose}
         query={currentQuery}
+        response={currentResponse}
       />
       
       <Toaster />
@@ -119,11 +131,15 @@ const Dashboard = () => {
 function App() {
   return (
     <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-        </Routes>
-      </BrowserRouter>
+      <TicketProvider>
+        <BackendProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+            </Routes>
+          </BrowserRouter>
+        </BackendProvider>
+      </TicketProvider>
     </div>
   );
 }

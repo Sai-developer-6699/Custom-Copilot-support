@@ -1,58 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { Terminal, X, Minimize2, Maximize2, Activity } from 'lucide-react';
+import { Terminal, X, Minimize2, Maximize2, Activity, Trash2, Filter } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
+import { useBackend } from '../../contexts/BackendContext';
 
 const BackendTerminal = ({ isVisible, onToggle }) => {
-  const [logs, setLogs] = useState([]);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [filter, setFilter] = useState('all'); // all, api, system, error, escalation
+  const { logs, isProcessing, clearLogs, getLogsByType } = useBackend();
 
-  // Mock backend logs
-  useEffect(() => {
-    const mockLogs = [
-      { id: 1, timestamp: new Date().toISOString(), level: 'INFO', message: 'FastAPI server started on port 8001' },
-      { id: 2, timestamp: new Date().toISOString(), level: 'INFO', message: 'MongoDB connection established' },
-      { id: 3, timestamp: new Date().toISOString(), level: 'INFO', message: 'AI analysis service initialized' },
-    ];
-    setLogs(mockLogs);
-
-    // Simulate real-time logs
-    const interval = setInterval(() => {
-      const newLog = {
-        id: Date.now(),
-        timestamp: new Date().toISOString(),
-        level: Math.random() > 0.8 ? 'WARN' : 'INFO',
-        message: generateRandomLog()
-      };
-      setLogs(prev => [...prev.slice(-20), newLog]); // Keep last 20 logs
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const generateRandomLog = () => {
-    const messages = [
-      'Processing customer query analysis...',
-      'NLP model inference completed in 150ms',
-      'Sentiment analysis: Neutral (confidence: 87%)',
-      'Priority classification: Medium',
-      'Response generated successfully',
-      'Database query executed',
-      'Cache hit for ticket classification',
-      'API response sent to client',
-      'Memory usage: 45% of allocated',
-      'Health check passed',
-      'Background task completed',
-      'Model pipeline executed'
-    ];
-    return messages[Math.floor(Math.random() * messages.length)];
-  };
+  const filteredLogs = filter === 'all' ? logs : getLogsByType(filter);
 
   const getLevelColor = (level) => {
     switch (level) {
       case 'ERROR': return 'text-red-400';
       case 'WARN': return 'text-yellow-400';
       case 'INFO': return 'text-green-400';
+      default: return 'text-gray-400';
+    }
+  };
+
+  const getTypeColor = (type) => {
+    switch (type) {
+      case 'user': return 'text-blue-400';
+      case 'system': return 'text-cyan-400';
+      case 'api': return 'text-green-400';
+      case 'error': return 'text-red-400';
+      case 'escalation': return 'text-orange-400';
+      case 'response': return 'text-purple-400';
       default: return 'text-gray-400';
     }
   };
@@ -77,11 +52,20 @@ const BackendTerminal = ({ isVisible, onToggle }) => {
           <Terminal className="h-4 w-4 text-blue-400" />
           <span className="text-sm font-medium">Backend Terminal</span>
           <div className="flex items-center space-x-1">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-xs text-slate-400">Live</span>
+            <div className={`w-2 h-2 rounded-full ${isProcessing ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`}></div>
+            <span className="text-xs text-slate-400">{isProcessing ? 'Processing' : 'Live'}</span>
           </div>
         </div>
         <div className="flex items-center space-x-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearLogs}
+            className="h-6 w-6 p-0 text-slate-400 hover:text-red-400 hover:bg-slate-800"
+            title="Clear logs"
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -104,9 +88,30 @@ const BackendTerminal = ({ isVisible, onToggle }) => {
       {/* Terminal Content */}
       {!isMinimized && (
         <div className="p-3 h-full">
-          <ScrollArea className="h-64">
+          {/* Filter Controls */}
+          <div className="flex items-center space-x-2 mb-3">
+            <Filter className="h-3 w-3 text-slate-400" />
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="bg-slate-800 text-slate-300 text-xs rounded px-2 py-1 border border-slate-700"
+            >
+              <option value="all">All</option>
+              <option value="user">User</option>
+              <option value="system">System</option>
+              <option value="api">API</option>
+              <option value="error">Errors</option>
+              <option value="escalation">Escalations</option>
+              <option value="response">Responses</option>
+            </select>
+            <span className="text-xs text-slate-500">
+              {filteredLogs.length} logs
+            </span>
+          </div>
+
+          <ScrollArea className="h-48">
             <div className="space-y-1 font-mono text-xs">
-              {logs.map((log) => (
+              {filteredLogs.map((log) => (
                 <div key={log.id} className="flex items-start space-x-2">
                   <span className="text-slate-500 text-xs shrink-0">
                     {formatTimestamp(log.timestamp)}
@@ -114,21 +119,29 @@ const BackendTerminal = ({ isVisible, onToggle }) => {
                   <span className={`text-xs shrink-0 font-semibold ${getLevelColor(log.level)}`}>
                     [{log.level}]
                   </span>
+                  <span className={`text-xs shrink-0 font-semibold ${getTypeColor(log.type)}`}>
+                    [{log.type?.toUpperCase()}]
+                  </span>
                   <span className="text-slate-300 text-xs flex-1">
                     {log.message}
                   </span>
                 </div>
               ))}
+              {filteredLogs.length === 0 && (
+                <div className="text-slate-500 text-xs text-center py-4">
+                  No logs to display
+                </div>
+              )}
             </div>
           </ScrollArea>
           
           {/* Status bar */}
-          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-slate-500 border-t border-slate-800 pt-2">
+          <div className="mt-3 pt-2 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
             <div className="flex items-center space-x-2">
               <Activity className="h-3 w-3" />
-              <span>CPU: 12% | RAM: 256MB</span>
+              <span>Backend: {isProcessing ? 'Processing' : 'Ready'}</span>
             </div>
-            <span>{logs.length} events</span>
+            <span>{filteredLogs.length} logs</span>
           </div>
         </div>
       )}
