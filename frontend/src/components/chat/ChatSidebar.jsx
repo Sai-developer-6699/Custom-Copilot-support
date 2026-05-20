@@ -47,6 +47,25 @@ const ChatSidebar = ({ onSubmit, onClose, isOpen = true }) => {
     adjustTextareaHeight();
   }, [query]);
 
+  // Theme: initialize from localStorage or system preference
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('theme');
+      if (stored === 'dark') document.documentElement.classList.add('dark');
+      else if (stored === 'light') document.documentElement.classList.remove('dark');
+      else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  const toggleDark = () => {
+    const isDark = document.documentElement.classList.toggle('dark');
+    try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch (e) {}
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (query.trim() || attachedFiles.length > 0) {
@@ -285,16 +304,16 @@ const ChatSidebar = ({ onSubmit, onClose, isOpen = true }) => {
   };
 
   return (
-    <div className={`w-96 bg-white border-l border-gray-200 flex flex-col fixed top-[84px] right-0 h-[calc(100vh-84px)] flex-shrink-0 z-30 transform transition-all duration-300 ease-out will-change-transform ${
+    <div className={`w-96 bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-gray-700 flex flex-col fixed top-[84px] right-0 h-[calc(100vh-84px)] flex-shrink-0 z-30 transform transition-all duration-300 ease-out will-change-transform ${
       isOpen
         ? 'translate-x-0 opacity-100 pointer-events-auto'
         : 'translate-x-full opacity-0 pointer-events-none lg:translate-x-0 lg:opacity-100 lg:pointer-events-auto'
     }`}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-2">
           <Bot className="h-6 w-6 text-blue-600" />
-          <h2 className="font-semibold text-gray-800">AI Assistant</h2>
+          <h2 className="font-semibold text-gray-800 dark:text-gray-100">AI Assistant</h2>
         </div>
         <div className="flex items-center space-x-2">
           <Button
@@ -314,6 +333,15 @@ const ChatSidebar = ({ onSubmit, onClose, isOpen = true }) => {
           >
             <Settings className="h-4 w-4" />
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleDark}
+            className="text-gray-600 hover:text-blue-600 transition-colors"
+            title="Toggle theme"
+          >
+            <Sparkles className="h-4 w-4" />
+          </Button>
           {/* Mobile Close Button */}
           {onClose && (
             <Button
@@ -332,21 +360,21 @@ const ChatSidebar = ({ onSubmit, onClose, isOpen = true }) => {
       {/* Chat Messages */}
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
-          <Card className="overflow-hidden border-blue-100 bg-gradient-to-br from-sky-50 via-white to-cyan-50 shadow-sm">
+          <Card className="overflow-hidden border border-zinc-800 bg-gradient-to-br from-zinc-900/60 via-zinc-900/40 to-zinc-950/60 shadow-xl shadow-black/20 text-zinc-100">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm shadow-blue-500/20">
                     <BookOpen className="h-5 w-5" />
                   </div>
                   <div>
-                    <CardTitle className="text-base text-gray-900">Explore Atlan Docs</CardTitle>
-                    <CardDescription className="text-xs text-gray-600">
+                    <CardTitle className="text-base text-zinc-100 font-bold">Explore Atlan Docs</CardTitle>
+                    <CardDescription className="text-xs text-zinc-400">
                       Query indexed Atlan documentation and compare how retrieval responds to real product questions.
                     </CardDescription>
                   </div>
                 </div>
-                <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Live RAG</Badge>
+                <Badge className="bg-blue-950/40 text-blue-400 border border-blue-800/40 hover:bg-blue-950/60">Live RAG</Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
@@ -354,7 +382,7 @@ const ChatSidebar = ({ onSubmit, onClose, isOpen = true }) => {
                 <button
                   type="button"
                   onClick={openAtlanDocs}
-                  className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm"
+                  className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-700 hover:bg-zinc-900 hover:shadow-md"
                 >
                   Open developer docs
                   <ExternalLink className="h-3.5 w-3.5" />
@@ -362,7 +390,7 @@ const ChatSidebar = ({ onSubmit, onClose, isOpen = true }) => {
                 <button
                   type="button"
                   onClick={() => setQuery('Show me the best Atlan docs for testing search and integration flows.')}
-                  className="inline-flex items-center gap-2 rounded-full border border-transparent bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-sm"
+                  className="inline-flex items-center gap-2 rounded-full border border-blue-800/40 bg-blue-950/40 px-3 py-1.5 text-xs font-medium text-blue-300 transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-900/30 hover:shadow-md"
                 >
                   Try a prompt
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -370,8 +398,8 @@ const ChatSidebar = ({ onSubmit, onClose, isOpen = true }) => {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
-                  <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+                  <Sparkles className="h-3.5 w-3.5 text-blue-400 animate-pulse" />
                   Suggested prompts
                 </div>
                 <div className="grid gap-2">
@@ -380,7 +408,7 @@ const ChatSidebar = ({ onSubmit, onClose, isOpen = true }) => {
                       key={prompt}
                       type="button"
                       onClick={() => setQuery(prompt)}
-                      className="rounded-xl border border-gray-200 bg-white/80 px-3 py-2 text-left text-xs text-gray-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-white hover:text-gray-900 hover:shadow-sm"
+                      className="rounded-xl border border-zinc-800/80 bg-zinc-950/60 px-3 py-2 text-left text-xs text-zinc-300 transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-100 hover:shadow-md"
                     >
                       {prompt}
                     </button>
@@ -423,8 +451,8 @@ const ChatSidebar = ({ onSubmit, onClose, isOpen = true }) => {
                     message.type === 'user'
                       ? 'bg-gradient-to-br from-blue-600 to-sky-600 text-white shadow-blue-200/50'
                       : message.isThinking
-                      ? 'bg-gray-100 text-gray-600'
-                      : 'bg-white text-gray-800 ring-1 ring-gray-200'
+                      ? 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-200'
+                      : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100 ring-1 ring-gray-200 dark:ring-gray-700'
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -500,7 +528,7 @@ const ChatSidebar = ({ onSubmit, onClose, isOpen = true }) => {
       )}
 
       {/* Input Area */}
-      <div className="p-4 w-full border-t border-gray-200">
+      <div className="p-4 w-full border-t border-gray-200 dark:border-gray-700">
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="flex items-end w-full space-x-2">
             <div className="flex-1 relative">
@@ -515,19 +543,19 @@ const ChatSidebar = ({ onSubmit, onClose, isOpen = true }) => {
                     handleSubmit(e);
                   }
                 }}
-                className="w-full pr-12 py-3 px-3 border border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl resize-none overflow-hidden min-h-[44px] max-h-32 text-sm leading-5 transition-all duration-200"
+                className="w-full pr-16 py-2.5 pl-3 border border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 rounded-xl resize-none overflow-hidden min-h-[44px] max-h-32 text-sm leading-5 transition-all duration-200 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100"
                 style={{
                   minHeight: '44px',
                   maxHeight: '128px'
                 }}
               />
-              <div className="absolute right-1 top-1 flex items-center space-x-1">
+              <div className="absolute right-2 bottom-2 flex items-center space-x-1">
                 <Button
                   type="button"
                   size="sm"
                   variant="ghost"
                   onClick={() => fileInputRef.current?.click()}
-                  className="h-8 w-8 p-0 text-gray-500 transition-colors hover:text-blue-600"
+                  className="h-8 w-8 p-0 text-gray-500 dark:text-gray-300 transition-colors hover:text-blue-600"
                   title="Attach files"
                 >
                   <Paperclip className="h-4 w-4" />

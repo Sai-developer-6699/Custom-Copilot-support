@@ -10,66 +10,66 @@ const TicketTable = ({ onTicketClick }) => {
     switch (priority?.toLowerCase()) {
       case 'p0':
       case 'high':
-        return 'bg-red-100 text-red-800 hover:bg-red-200';
+        return 'bg-rose-950/50 text-rose-300 border border-rose-800/40 hover:bg-rose-950/70 font-semibold';
       case 'p1':
       case 'medium':
-        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+        return 'bg-amber-950/50 text-amber-300 border border-amber-800/40 hover:bg-amber-950/70';
       case 'p2':
       case 'p3':
       case 'low':
-        return 'bg-green-100 text-green-800 hover:bg-green-200';
+        return 'bg-emerald-950/50 text-emerald-300 border border-emerald-800/40 hover:bg-emerald-950/70';
       default:
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+        return 'bg-zinc-800/80 text-zinc-300 border border-zinc-700/50 hover:bg-zinc-800';
     }
   };
 
   const getSentimentColor = (sentiment) => {
     switch (sentiment.toLowerCase()) {
       case 'positive':
-        return 'bg-green-100 text-green-800 hover:bg-green-200';
+        return 'bg-emerald-950/50 text-emerald-300 border border-emerald-800/40 hover:bg-emerald-950/70';
       case 'negative':
-        return 'bg-red-100 text-red-800 hover:bg-red-200';
+        return 'bg-rose-950/50 text-rose-300 border border-rose-800/40 hover:bg-rose-950/70';
       case 'neutral':
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+        return 'bg-zinc-800/80 text-zinc-300 border border-zinc-700/50 hover:bg-zinc-800';
       default:
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+        return 'bg-zinc-800/80 text-zinc-300 border border-zinc-700/50 hover:bg-zinc-800';
     }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div className="bg-zinc-900/40 backdrop-blur-md rounded-2xl shadow-2xl border border-zinc-800/85 overflow-hidden">
       <div className="overflow-x-auto max-w-full">
         <table className="w-full min-w-max">
-          <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+          <thead className="bg-zinc-950/50 border-b border-zinc-800/85 sticky top-0 z-10">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                 Serial No.
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                 Ticket Number
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                 Topic
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                 Sentiment
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                 Priority
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                 Response
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-zinc-800/60">
             {tickets.length === 0 ? (
               <tr>
-                <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                  <div className="flex flex-col items-center space-y-2">
-                    <div className="text-4xl">📋</div>
-                    <div>No tickets yet</div>
-                    <div className="text-sm">Submit a query to create your first ticket</div>
+                <td colSpan="6" className="px-6 py-12 text-center text-zinc-400">
+                  <div className="flex flex-col items-center space-y-3">
+                    <div className="text-4xl animate-bounce">📋</div>
+                    <div className="font-semibold text-zinc-200">No tickets yet</div>
+                    <div className="text-xs text-zinc-500">Submit a query to generate your first ticket with AI insights</div>
                   </div>
                 </td>
               </tr>
@@ -77,20 +77,20 @@ const TicketTable = ({ onTicketClick }) => {
               tickets.map((ticket, index) => (
                 <tr 
                   key={ticket.id}
-                  className={`transition-colors duration-150 hover:bg-blue-50 ${
-                    index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                  className={`transition-colors duration-150 hover:bg-zinc-800/40 ${
+                    index % 2 === 0 ? 'bg-zinc-900/10' : 'bg-zinc-950/10'
                   }`}
                 >
-                  <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                  <td className="px-6 py-4 text-sm text-zinc-400 font-medium">
                     {index + 1}
                   </td>
-                  <td className="px-6 py-4 text-sm font-mono text-blue-600 font-medium">
+                  <td className="px-6 py-4 text-sm font-mono text-blue-400 font-semibold">
                     {ticket.ticketNumber}
                   </td>
                   <td className="px-6 py-4">
                     <Badge 
                       variant="secondary" 
-                      className="bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors duration-150"
+                      className="bg-blue-950/40 text-blue-300 border border-blue-800/40 hover:bg-blue-950/70 transition-colors duration-150"
                     >
                       {ticket.topic}
                     </Badge>
@@ -112,14 +112,14 @@ const TicketTable = ({ onTicketClick }) => {
                     </Badge>
                   </td>
                   <td 
-                    className="px-6 py-4 text-sm text-gray-600 max-w-xs cursor-pointer group"
+                    className="px-6 py-4 text-sm text-zinc-300 max-w-xs cursor-pointer group"
                     onClick={() => onTicketClick && onTicketClick(ticket)}
                   >
                     <div className="flex items-center space-x-2">
-                      <span className="truncate flex-1">
+                      <span className="truncate flex-1 group-hover:text-blue-300 transition-colors">
                         {ticket.response}
                       </span>
-                      <Eye className="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                      <Eye className="h-4 w-4 text-zinc-500 group-hover:text-blue-400 transition-colors" />
                     </div>
                   </td>
                 </tr>

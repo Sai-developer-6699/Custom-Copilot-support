@@ -46,7 +46,7 @@ const Dashboard = () => {
 
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-blue-500/30 selection:text-blue-200">
       {/* Header */}
       <Header />
       
@@ -57,17 +57,17 @@ const Dashboard = () => {
           <main className="px-4 sm:px-6 py-8 max-w-7xl mx-auto">
             <div className="mb-8 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                <h2 className="text-2xl font-extrabold bg-gradient-to-r from-zinc-50 via-zinc-100 to-zinc-400 bg-clip-text text-transparent tracking-tight mb-2">
                   Support Tickets Dashboard
                 </h2>
-                <p className="text-gray-600">
+                <p className="text-zinc-400 text-sm">
                   Monitor and analyze customer support interactions with AI-powered insights.
                 </p>
               </div>
               {/* Mobile Chat Toggle Button */}
               <button
                 onClick={toggleChatSidebar}
-                className="lg:hidden fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg z-50 transition-colors"
+                className="lg:hidden fixed bottom-6 right-6 bg-gradient-to-tr from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-3.5 rounded-full shadow-xl shadow-blue-500/30 z-50 transition-all duration-200 hover:scale-105"
                 title="Open AI Assistant"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,7 +114,7 @@ const Dashboard = () => {
 
 function App() {
   return (
-    <div className="App">
+    <div className="App dark bg-zinc-950 min-h-screen">
       <TicketProvider>
         <BackendProvider>
           <BrowserRouter>

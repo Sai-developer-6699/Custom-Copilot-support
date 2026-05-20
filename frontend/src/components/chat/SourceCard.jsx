@@ -20,27 +20,27 @@ const SourceCard = ({ source }) => {
     <div
       role="article"
       aria-label={`Source: ${docTitle}`}
-      className="group relative rounded-lg border border-slate-200 bg-white/60 p-3 hover:shadow-xl hover:scale-[1.01] transition-transform duration-200"
+      className="group relative rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 hover:border-zinc-700/80 hover:bg-zinc-900/90 transition-all duration-200 shadow-md hover:shadow-xl"
     >
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
-          <div className="text-xs text-slate-500 mb-1 truncate">{docTitle}</div>
-          <div className="text-sm text-slate-700 line-clamp-3">{chunk}</div>
+          <div className="text-xs font-semibold text-zinc-400 mb-1 truncate">{docTitle}</div>
+          <div className="text-sm text-zinc-200 leading-6 line-clamp-3">{chunk}</div>
         </div>
 
         {displayScore != null && (
-          <div className="ml-3 flex flex-col items-end">
-            <div className="px-2 py-0.5 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 text-white text-xs font-semibold">
+          <div className="ml-3 flex flex-col items-end flex-shrink-0">
+            <div className="px-2 py-0.5 rounded-full bg-gradient-to-br from-blue-900/80 to-indigo-950/80 text-blue-300 border border-blue-800/40 text-[10px] font-bold tracking-wider">
               {displayScore}
             </div>
-            <div className="mt-1 text-xs text-slate-400">score</div>
+            <div className="mt-1 text-[10px] text-zinc-500 font-medium uppercase tracking-wider">score</div>
           </div>
         )}
       </div>
 
       {hasUrl && (
-        <div className="absolute right-2 bottom-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <ExternalLink className="h-4 w-4 text-slate-400" />
+        <div className="absolute right-3 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity">
+          <ExternalLink className="h-4 w-4 text-zinc-400 hover:text-blue-400" />
         </div>
       )}
     </div>

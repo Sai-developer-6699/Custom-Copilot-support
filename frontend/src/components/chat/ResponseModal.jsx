@@ -87,10 +87,10 @@ const ResponseModal = ({ isOpen, onClose, query, response }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[82vh] overflow-y-auto border-gray-200 bg-gradient-to-b from-white to-slate-50 shadow-2xl">
+      <DialogContent className="max-w-4xl max-h-[82vh] overflow-y-auto border-zinc-800 bg-gradient-to-b from-zinc-900 to-zinc-950 shadow-2xl shadow-black/40 text-zinc-100">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl font-semibold text-slate-900">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm">
+          <DialogTitle className="flex items-center gap-2 text-xl font-semibold text-zinc-50">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/20">
               <Brain className="h-5 w-5" />
             </div>
             AI Analysis & Response
@@ -98,39 +98,39 @@ const ResponseModal = ({ isOpen, onClose, query, response }) => {
         </DialogHeader>
         
         <div className="mt-4 space-y-6">
-          <div className="rounded-2xl border border-blue-100 bg-blue-50/80 p-4 shadow-sm">
+          <div className="rounded-2xl border border-blue-900/40 bg-blue-950/30 p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-sm font-semibold text-blue-900">
-                <Sparkles className="h-4 w-4" />
+              <div className="flex items-center gap-2 text-sm font-semibold text-blue-300">
+                <Sparkles className="h-4 w-4 animate-pulse" />
                 Query under review
               </div>
               <button
                 onClick={() => window.open(ATLAN_DOCS_URL, '_blank', 'noopener,noreferrer')}
-                className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-sm"
+                className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-all duration-200 hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md"
               >
                 Open Atlan docs
                 <ExternalLink className="h-3.5 w-3.5" />
               </button>
             </div>
-            <p className="whitespace-pre-wrap text-sm leading-6 text-blue-800">
+            <p className="whitespace-pre-wrap text-sm leading-6 text-blue-200">
               {query}
             </p>
           </div>
 
           {loading && (
-            <motion.div {...motionInProps} className="flex items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-10">
+            <motion.div {...motionInProps} className="flex items-center justify-center rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/60 py-10">
               <div className="mr-3"><TypingLoader /></div>
-              <span className="ml-3 text-sm text-slate-600">Analyzing your request...</span>
+              <span className="ml-3 text-sm text-zinc-400">Analyzing your request...</span>
             </motion.div>
           )}
 
           {error && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 shadow-sm">
-              <h3 className="mb-2 text-sm font-medium text-red-800">Error:</h3>
-              <p className="text-sm leading-6 text-red-700">{error}</p>
+            <div className="rounded-2xl border border-rose-800/40 bg-rose-950/30 p-4 shadow-sm">
+              <h3 className="mb-2 text-sm font-medium text-rose-300">Error:</h3>
+              <p className="text-sm leading-6 text-rose-200">{error}</p>
               <button
                 onClick={fetchAnalysis}
-                className="mt-3 rounded-lg bg-red-600 px-4 py-2 text-sm text-white transition-colors hover:bg-red-700"
+                className="mt-3 rounded-lg bg-rose-600 px-4 py-2 text-sm text-white transition-colors hover:bg-rose-700"
               >
                 Retry
               </button>
@@ -139,62 +139,62 @@ const ResponseModal = ({ isOpen, onClose, query, response }) => {
 
           {analysis && !loading && (
             <Tabs defaultValue="response" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1">
-                <TabsTrigger value="analysis" className="flex items-center data-[state=active]:bg-white">
+              <TabsList className="grid w-full grid-cols-2 bg-zinc-900/80 border border-zinc-800 p-1 rounded-xl">
+                <TabsTrigger value="analysis" className="flex items-center data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-50 text-zinc-400 rounded-lg transition-all">
                   <Brain className="mr-2 h-4 w-4" />
                   Internal Analysis
                 </TabsTrigger>
-                <TabsTrigger value="response" className="flex items-center data-[state=active]:bg-white">
+                <TabsTrigger value="response" className="flex items-center data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-50 text-zinc-400 rounded-lg transition-all">
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Final Response
                 </TabsTrigger>
               </TabsList>
             
               <TabsContent value="analysis" className="mt-4">
-                <Card className="border-slate-200 shadow-sm">
+                <Card className="border-zinc-800 bg-zinc-900/60 shadow-lg">
                   <CardHeader>
-                    <CardTitle className="text-lg text-slate-900">Classification Results</CardTitle>
+                    <CardTitle className="text-lg text-zinc-100">Classification Results</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-600">Topic</label>
-                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">
+                        <label className="text-sm font-medium text-zinc-400">Topic</label>
+                        <Badge className="bg-blue-950/40 text-blue-300 border border-blue-800/40">
                           {analysis.analysis?.topic || 'Unknown'}
                         </Badge>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-600">Sentiment</label>
+                        <label className="text-sm font-medium text-zinc-400">Sentiment</label>
                         <Badge className={`${
-                          analysis.analysis?.sentiment === 'Positive' ? 'bg-green-100 text-green-800' :
-                          analysis.analysis?.sentiment === 'Negative' ? 'bg-red-100 text-red-800' :
-                          'bg-gray-100 text-gray-800'
+                          analysis.analysis?.sentiment === 'Positive' ? 'bg-emerald-950/50 text-emerald-300 border border-emerald-800/40' :
+                          analysis.analysis?.sentiment === 'Negative' ? 'bg-rose-950/50 text-rose-300 border border-rose-800/40' :
+                          'bg-zinc-800 text-zinc-300 border border-zinc-700'
                         }`}>
                           {analysis.analysis?.sentiment || 'Neutral'}
                         </Badge>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-600">Priority</label>
+                        <label className="text-sm font-medium text-zinc-400">Priority</label>
                         <Badge className={`${
-                          analysis.analysis?.priority === 'P0' ? 'bg-red-100 text-red-800' :
-                          analysis.analysis?.priority === 'P1' ? 'bg-orange-100 text-orange-800' :
-                          analysis.analysis?.priority === 'P2' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-green-100 text-green-800'
+                          analysis.analysis?.priority === 'P0' ? 'bg-rose-950/50 text-rose-300 border border-rose-800/40 font-bold' :
+                          analysis.analysis?.priority === 'P1' ? 'bg-amber-950/50 text-amber-300 border border-amber-800/40' :
+                          analysis.analysis?.priority === 'P2' ? 'bg-yellow-950/50 text-yellow-300 border border-yellow-800/40' :
+                          'bg-emerald-950/50 text-emerald-300 border border-emerald-800/40'
                         }`}>
                           {analysis.analysis?.priority || 'P3'}
                         </Badge>
                       </div>
                     </div>
                     
-                    <div className="border-t border-slate-200 pt-4">
-                      <label className="mb-2 block text-sm font-medium text-slate-600">Analysis Details</label>
-                      <div className="space-y-2 rounded-xl bg-slate-50 p-4">
-                        <p className="text-sm text-slate-700">
-                          <strong>Query:</strong> {analysis.query}
+                    <div className="border-t border-zinc-800 pt-4">
+                      <label className="mb-2 block text-sm font-medium text-zinc-400">Analysis Details</label>
+                      <div className="space-y-2 rounded-xl bg-zinc-950/60 border border-zinc-800 p-4">
+                        <p className="text-sm text-zinc-300">
+                          <strong className="text-zinc-100">Query:</strong> {analysis.query}
                         </p>
                         {analysis.analysis && (
-                          <div className="text-sm text-slate-700">
-                            <strong>Classification:</strong> {JSON.stringify(analysis.analysis, null, 2)}
+                          <div className="text-sm text-zinc-300">
+                            <strong className="text-zinc-100">Classification:</strong> {JSON.stringify(analysis.analysis, null, 2)}
                           </div>
                         )}
                       </div>
@@ -204,25 +204,25 @@ const ResponseModal = ({ isOpen, onClose, query, response }) => {
               </TabsContent>
             
               <TabsContent value="response" className="mt-4">
-                <Card className="border-slate-200 shadow-sm">
+                <Card className="border-zinc-800 bg-zinc-900/60 shadow-lg">
                   <CardHeader>
-                    <CardTitle className="text-lg text-slate-900">AI Generated Response</CardTitle>
+                    <CardTitle className="text-lg text-zinc-100">AI Generated Response</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <motion.div {...motionAnswerProps} className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6 shadow-sm">
-                      <p className="whitespace-pre-wrap text-sm leading-7 text-slate-800">
+                    <motion.div {...motionAnswerProps} className="rounded-2xl border border-blue-900/30 bg-gradient-to-br from-blue-950/30 via-zinc-900/60 to-indigo-950/30 p-6 shadow-inner">
+                      <p className="whitespace-pre-wrap text-sm leading-7 text-zinc-200">
                         {analysis.answer}
                       </p>
                     </motion.div>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                      <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">Structured response</span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">Indexed Atlan docs</span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">Stream-ready UI</span>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                      <span className="rounded-full bg-zinc-800 border border-zinc-700 px-3 py-1 font-medium text-zinc-300">Structured response</span>
+                      <span className="rounded-full bg-zinc-800 border border-zinc-700 px-3 py-1 font-medium text-zinc-300">Indexed Atlan docs</span>
+                      <span className="rounded-full bg-zinc-800 border border-zinc-700 px-3 py-1 font-medium text-zinc-300">Stream-ready UI</span>
                     </div>
                     
                     {normalizedSources.length > 0 && (
-                      <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                        <h4 className="mb-3 text-sm font-medium text-slate-700">Sources</h4>
+                      <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 p-4">
+                        <h4 className="mb-3 text-sm font-medium text-zinc-300">Sources</h4>
                         <div className="grid gap-3 md:grid-cols-2">
                           {normalizedSources.map((sourceObj, index) => (
                             <SourceCard key={index} source={sourceObj} />
