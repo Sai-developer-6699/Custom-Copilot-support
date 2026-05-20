@@ -12,8 +12,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 
 from web_scraper import scrape_atlan_docs
-from enhanced_rag_pipeline import EnhancedRAGPipeline
-from enhanced_data_loader import EnhancedDataLoader
+from rag_pipeline import RAGPipeline
+from data_loader import DataLoader
 
 def main():
     print("🚀 Setting up Atlan AI Knowledge Base...")
@@ -33,7 +33,7 @@ def main():
     # Step 2: Build knowledge base index
     print("\n🔍 Step 2: Building Knowledge Base Index...")
     try:
-        rag_pipeline = EnhancedRAGPipeline()
+        rag_pipeline = RAGPipeline()
         rag_pipeline.build_index(force_rebuild=True)
         
         stats = rag_pipeline.get_stats()
@@ -67,7 +67,7 @@ def main():
     # Step 4: Show data loader stats
     print("\n📊 Step 4: Data Sources Summary...")
     try:
-        data_loader = EnhancedDataLoader()
+        data_loader = DataLoader()
         stats = data_loader.get_document_stats()
         
         print(f"   - Total documents: {stats['total_documents']}")

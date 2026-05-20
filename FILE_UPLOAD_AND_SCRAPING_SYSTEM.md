@@ -129,11 +129,11 @@ def scrape_site(self, max_pages=50, delay=1):
 }
 ```
 
-## Enhanced Data Loader
+## Canonical Data Loader
 
 ### Implementation
 
-**Location**: `backend/enhanced_data_loader.py`
+**Location**: `backend/data_loader.py`
 
 **Data Sources**:
 1. **Existing Data**: `data/snowflake.txt`
@@ -179,11 +179,11 @@ def process_document(self, doc: Dict[str, Any]) -> str:
     return "\n\n".join(content_parts)
 ```
 
-## Enhanced RAG Pipeline
+## Canonical RAG Pipeline
 
 ### Implementation
 
-**Location**: `backend/enhanced_rag_pipeline.py`
+**Location**: `backend/rag_pipeline.py`
 
 **Features**:
 - **Dynamic Index Building**: Can rebuild index with new data
@@ -453,10 +453,10 @@ Response Generation
 
 ```bash
 # Test data loader
-python -c "from enhanced_data_loader import EnhancedDataLoader; loader = EnhancedDataLoader(); print(loader.get_document_stats())"
+python -c "from data_loader import DataLoader; loader = DataLoader(); print(loader.get_document_stats())"
 
 # Test RAG pipeline
-python -c "from enhanced_rag_pipeline import EnhancedRAGPipeline; rag = EnhancedRAGPipeline(); print(rag.get_stats())"
+python -c "from rag_pipeline import rag_pipeline; print(rag_pipeline.get_stats())"
 
 # Test web scraper
 python -c "from web_scraper import scrape_atlan_docs; print(scrape_atlan_docs())"

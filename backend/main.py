@@ -1,9 +1,19 @@
-
-from fastapi import FastAPI, File, UploadFile, HTTPException
+import json
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from enhanced_rag_pipeline import generate_answer, rebuild_index, load_index
+from sqlalchemy.orm import Session
+from typing import List, Optional
+from rag_pipeline import generate_answer, rebuild_index, load_index, rag_pipeline
 from classifier import classify_ticket
+from database import get_db, engine, Base
+from ocr_service import extract_text_from_image, is_image_content_type
+from cache import get_cached, set_cached, cache_stats
+import models  # noqa: ensures all models are registered with Base
+from models.ticket import Ticket
+from models.chat import ChatSession, ChatMessage
+from models.uploaded_file import UploadedFile
 import os
 import uuid
 import aiofiles
@@ -11,25 +21,39 @@ from pathlib import Path
 import mimetypes
 
 
-app = FastAPI()
+app = FastAPI(
+    title="Atlan AI Customer Support Copilot",
+    description="AI-powered support system with RAG, ticket classification, and smart routing.",
+    version="1.0.0"
+)
 
-# Add CORS middleware to allow frontend requests
+# ---- CORS ----
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend URL
+    allow_origins=["*"],  # In production, set to your Vercel frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# ---- Startup: create DB tables ----
+@app.on_event("startup")
+def startup():
+    """Create all tables on startup if they don't already exist."""
+    Base.metadata.create_all(bind=engine)
+    print("✅ Database tables ready")
+
+
 class QueryRequest(BaseModel):
     text: str
+    file_ids: Optional[List[str]] = []  # fileIds of uploaded images to include via OCR
+    session_id: Optional[str] = None
 
-# Create uploads directory
+
+# ---- Upload config ----
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-# Allowed file types
 ALLOWED_TYPES = {
     'text/plain', 'text/csv', 'application/pdf', 'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -37,65 +61,277 @@ ALLOWED_TYPES = {
     'application/json', 'text/markdown', 'image/jpeg', 'image/png', 'image/gif'
 }
 
+RAG_TOPICS = [
+    "How-to", "Product", "API/SDK", "SSO", "Best practices",
+    "Connector", "Lineage", "Glossary", "Sensitive data"
+]
+
+
+def _ensure_chat_session(db: Session, session_id: Optional[str]) -> ChatSession:
+    if session_id:
+        existing_session = db.query(ChatSession).filter(ChatSession.session_id == session_id).first()
+        if existing_session:
+            return existing_session
+
+    new_session = ChatSession(session_id=session_id or str(uuid.uuid4()))
+    db.add(new_session)
+    db.commit()
+    db.refresh(new_session)
+    return new_session
+
+
+def _save_chat_turn(
+    db: Session,
+    session_id: str,
+    user_text: str,
+    response_data: dict,
+    ticket_id: Optional[int] = None,
+) -> None:
+    try:
+        resolved_ticket_id = ticket_id or response_data.get("ticketId")
+        db.add(ChatMessage(session_id=session_id, role="user", content=user_text, ticket_id=resolved_ticket_id))
+        db.add(ChatMessage(
+            session_id=session_id,
+            role="assistant",
+            content=response_data.get("answer", ""),
+            is_thinking=False,
+            is_error=False,
+            ticket_id=resolved_ticket_id,
+        ))
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        print(f"Warning: Failed to save chat history: {exc}")
+
+
+def _build_combined_query(req: QueryRequest, db: Session) -> tuple[str, bool]:
+    combined_query = req.text
+    screenshot_used = bool(req.file_ids)
+
+    if req.file_ids:
+        ocr_sections: list[str] = []
+        for fid in req.file_ids:
+            db_file = db.query(UploadedFile).filter(UploadedFile.file_id == fid).first()
+            if db_file and db_file.extracted_text and db_file.extracted_text.strip():
+                ocr_sections.append(
+                    f"Screenshot '{db_file.original_name}':\n{db_file.extracted_text.strip()}"
+                )
+
+        if ocr_sections:
+            combined_query = (
+                f"User Issue:\n{req.text}\n\n"
+                f"Screenshot Content:\n" + "\n\n".join(ocr_sections)
+            )
+
+    return combined_query, screenshot_used
+
+
+def _save_ticket_and_attach_response(db: Session, query: str, cls: dict, response_data: dict) -> None:
+    _save_ticket(db, query, cls, response_data)
+
+
+def _finalize_rag_response(
+    db: Session,
+    session: ChatSession,
+    req: QueryRequest,
+    cls: dict,
+    response_data: dict,
+    cacheable: bool,
+) -> dict:
+    if "ticketId" not in response_data:
+        _save_ticket_and_attach_response(db, req.text, cls, response_data)
+
+    _save_chat_turn(db, session.session_id, req.text, response_data, ticket_id=response_data.get("ticketId"))
+
+    if cacheable:
+        set_cached(req.text, response_data)
+
+    response_with_session = dict(response_data)
+    response_with_session["sessionId"] = session.session_id
+    return response_with_session
+
+
+def _emit_ndjson(payload: dict) -> str:
+    return json.dumps(payload, ensure_ascii=False) + "\n"
+
+
+# ---- Health Check ----
 @app.get("/")
 def root():
-    return {"message": "✅ Customer Support Copilot Backend running"}
+    return {"message": "Atlan AI Customer Support Copilot — running"}
+
+
+@app.get("/health")
+def health_check(db: Session = Depends(get_db)):
+    """Health check for load balancers and monitoring."""
+    try:
+        db.execute(__import__('sqlalchemy').text('SELECT 1'))
+        db_status = "connected"
+    except Exception:
+        db_status = "error"
+
+    index_stats = rag_pipeline.get_stats()
+    return {
+        "status":      "healthy",
+        "db":          db_status,
+        "index_docs":  index_stats.get("total_documents", 0),
+        "index_loaded": index_stats.get("index_loaded", False),
+        "cache":       cache_stats()
+    }
+
+
+@app.post("/cache/clear")
+def clear_response_cache():
+    """Clear the in-memory response cache (admin use)."""
+    from cache import clear_cache
+    clear_cache()
+    return {"message": "Cache cleared"}
+
+
+# ---- Ticket Endpoints ----
+@app.get("/tickets")
+def get_tickets(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Return all tickets, newest first."""
+    tickets = (
+        db.query(Ticket)
+        .order_by(Ticket.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return [t.to_dict() for t in tickets]
+
+
+@app.get("/tickets/{ticket_number}")
+def get_ticket(ticket_number: str, db: Session = Depends(get_db)):
+    """Return a single ticket by ticket number (e.g. TKT-2026-001)."""
+    ticket = db.query(Ticket).filter(Ticket.ticket_number == ticket_number).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail=f"Ticket {ticket_number} not found")
+    return ticket.to_dict()
+
+
+@app.get("/tickets/{ticket_number}/history")
+def get_ticket_history(ticket_number: str, db: Session = Depends(get_db)):
+    """Return chat history linked to a ticket."""
+    ticket = db.query(Ticket).filter(Ticket.ticket_number == ticket_number).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail=f"Ticket {ticket_number} not found")
+
+    messages = (
+        db.query(ChatMessage)
+        .filter(ChatMessage.ticket_id == ticket.id)
+        .order_by(ChatMessage.created_at.asc())
+        .all()
+    )
+
+    return {
+        "ticketNumber": ticket.ticket_number,
+        "ticketId": ticket.id,
+        "messages": [message.to_dict() for message in messages],
+    }
+
+
+@app.get("/chat/sessions/{session_id}")
+def get_chat_session(session_id: str, db: Session = Depends(get_db)):
+    """Return all messages for a chat session."""
+    session = db.query(ChatSession).filter(ChatSession.session_id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+
+    messages = (
+        db.query(ChatMessage)
+        .filter(ChatMessage.session_id == session_id)
+        .order_by(ChatMessage.created_at.asc())
+        .all()
+    )
+
+    return {
+        **session.to_dict(),
+        "messages": [message.to_dict() for message in messages],
+    }
+
 
 # ---- File Upload Endpoint ----
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db)):
     try:
-        # Validate file type
         if file.content_type not in ALLOWED_TYPES:
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail=f"File type {file.content_type} not allowed"
             )
-        
-        # Generate unique filename
+
         file_id = str(uuid.uuid4())
         file_extension = Path(file.filename).suffix
-        filename = f"{file_id}{file_extension}"
-        file_path = UPLOAD_DIR / filename
-        
-        # Save file
+        stored_filename = f"{file_id}{file_extension}"
+        file_path = UPLOAD_DIR / stored_filename
+
+        # Save file to disk
         async with aiofiles.open(file_path, 'wb') as f:
             content = await file.read()
             await f.write(content)
-        
-        # Process file content based on type
-        processed_content = await process_uploaded_file(file_path, file.content_type)
-        
+
+        # Extract text content (OCR for images, normal extraction for docs)
+        if is_image_content_type(file.content_type):
+            processed_content = extract_text_from_image(file_path)
+            ocr_applied = True
+        else:
+            processed_content = await process_uploaded_file(file_path, file.content_type)
+            ocr_applied = False
+
+        # Save metadata to database
+        db_file = UploadedFile(
+            file_id=file_id,
+            original_name=file.filename,
+            stored_filename=stored_filename,
+            file_path=str(file_path),
+            content_type=file.content_type,
+            size_bytes=len(content),
+            extracted_text=processed_content,
+            is_indexed=False
+        )
+        db.add(db_file)
+        db.commit()
+        db.refresh(db_file)
+
         return {
             "fileId": file_id,
             "filename": file.filename,
             "filePath": str(file_path),
             "contentType": file.content_type,
             "size": len(content),
-            "content": processed_content
+            "content": processed_content,
+            "ocrApplied": ocr_applied,
+            "hasExtractedText": bool(processed_content and processed_content.strip())
         }
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+
 async def process_uploaded_file(file_path: Path, content_type: str) -> str:
-    """Process uploaded file and extract text content"""
+    """Process uploaded file and extract text content."""
     try:
         if content_type.startswith('text/'):
-            # Handle text files
             async with aiofiles.open(file_path, 'r', encoding='utf-8') as f:
                 return await f.read()
-        
+
         elif content_type == 'application/json':
-            # Handle JSON files
             async with aiofiles.open(file_path, 'r', encoding='utf-8') as f:
                 content = await f.read()
                 import json
                 data = json.loads(content)
                 return json.dumps(data, indent=2)
-        
+
         elif content_type == 'application/pdf':
-            # Handle PDF files (requires PyPDF2 or similar)
             try:
                 import PyPDF2
                 with open(file_path, 'rb') as f:
@@ -106,80 +342,211 @@ async def process_uploaded_file(file_path: Path, content_type: str) -> str:
                     return text
             except ImportError:
                 return "PDF processing not available. Please install PyPDF2."
-        
+
         elif content_type.startswith('image/'):
-            # Handle images (basic info for now)
-            return f"Image file: {file_path.name} (OCR processing not implemented yet)"
-        
+            # Images are handled via OCR at upload time — this path is a fallback only
+            return "[Image — OCR text extracted at upload time]"
+
         else:
-            # For other file types, return basic info
             return f"File uploaded: {file_path.name} (Content extraction not implemented for this file type)"
-            
+
     except Exception as e:
         return f"Error processing file: {str(e)}"
+
 
 # ---- Classification Endpoint ----
 @app.post("/classify")
 def classify(req: QueryRequest):
     return classify_ticket(req.text)
 
-# ---- RAG Endpoint with escalation ----
-@app.post("/rag")
-def rag_endpoint(req: QueryRequest):
-    # Step 1: classify the ticket
-    cls = classify_ticket(req.text)
 
-    # Step 2: if priority is P0 → escalate to human
+# ---- RAG Endpoint with OCR screenshot support + response caching ----
+@app.post("/rag")
+def rag_endpoint(req: QueryRequest, db: Session = Depends(get_db)):
+    session = _ensure_chat_session(db, req.session_id)
+    combined_query, screenshot_used = _build_combined_query(req, db)
+
+    # Step 1: Check cache (text-only queries only — image queries are always unique)
+    if not req.file_ids:
+        cached = get_cached(req.text)
+        if cached:
+            cached_response = dict(cached)
+            cached_response["fromCache"] = True
+            cached_response["sessionId"] = session.session_id
+            _save_chat_turn(db, session.session_id, req.text, cached)
+            return cached_response
+
+    # Step 2: Classify using the combined query
+    cls = classify_ticket(combined_query)
+
+    # Step 3: P0 → escalate to human immediately
     if cls["priority"] == "P0":
-        return {
+        response_data = {
             "query": req.text,
             "analysis": cls,
             "answer": "⚠️ This ticket has been marked HIGH PRIORITY (P0). Redirecting to a human support agent immediately.",
-            "sources": []
+            "sources": [],
+            "screenshotUsed": screenshot_used,
+            "fromCache": False
         }
+        return _finalize_rag_response(db, session, req, cls, response_data, cacheable=False)
 
-    # Step 3: if topic is not eligible for RAG → just route
-    if cls["topic"] not in ["How-to", "Product", "API/SDK", "SSO", "Best practices"]:
-        return {
+    # Step 4: Topic not eligible for RAG → just route
+    if cls["topic"] not in RAG_TOPICS:
+        response_data = {
             "query": req.text,
             "analysis": cls,
             "answer": f"This ticket has been classified as '{cls['topic']}' and routed to the appropriate team.",
-            "sources": []
+            "sources": [],
+            "screenshotUsed": screenshot_used,
+            "fromCache": False
         }
-    if cls["topic"] == "unknown":
-        return{
-            "query": req.text,
-            "analysis" : cls,
-            "answer" : "❌ Sorry, I couldn’t understand your request. Please refine your question.",    
-            "sources" : []
-        }
+        return _finalize_rag_response(db, session, req, cls, response_data, cacheable=False)
 
-    # Step 4: run normal RAG pipeline
-    result = generate_answer(req.text)
-    return {
+    # Step 5: Run RAG pipeline — combined_query carries OCR text into retrieval + generation
+    result = generate_answer(combined_query)
+    response_data = {
         "query": req.text,
         "analysis": cls,
         "answer": result["answer"],
-        "sources": result["sources"]
+        "sources": result["sources"],
+        "sourceMetadata": result.get("retrieved", []),
+        "screenshotUsed": screenshot_used,
+        "fromCache": False,
     }
+    return _finalize_rag_response(db, session, req, cls, response_data, cacheable=not req.file_ids)
+
+
+@app.post("/rag/stream")
+def rag_stream_endpoint(req: QueryRequest, db: Session = Depends(get_db)):
+    session = _ensure_chat_session(db, req.session_id)
+    combined_query, screenshot_used = _build_combined_query(req, db)
+
+    def event_stream():
+        if not req.file_ids:
+            cached = get_cached(req.text)
+            if cached:
+                cached_response = dict(cached)
+                cached_response["fromCache"] = True
+                cached_response["sessionId"] = session.session_id
+                _save_chat_turn(db, session.session_id, req.text, cached)
+                yield _emit_ndjson({"type": "done", "response": cached_response})
+                return
+
+        cls = classify_ticket(combined_query)
+
+        if cls["priority"] == "P0":
+            response_data = {
+                "query": req.text,
+                "analysis": cls,
+                "answer": "⚠️ This ticket has been marked HIGH PRIORITY (P0). Redirecting to a human support agent immediately.",
+                "sources": [],
+                "screenshotUsed": screenshot_used,
+                "fromCache": False,
+            }
+            final_response = _finalize_rag_response(db, session, req, cls, response_data, cacheable=False)
+            yield _emit_ndjson({"type": "done", "response": final_response})
+            return
+
+        if cls["topic"] not in RAG_TOPICS:
+            response_data = {
+                "query": req.text,
+                "analysis": cls,
+                "answer": f"This ticket has been classified as '{cls['topic']}' and routed to the appropriate team.",
+                "sources": [],
+                "screenshotUsed": screenshot_used,
+                "fromCache": False,
+            }
+            final_response = _finalize_rag_response(db, session, req, cls, response_data, cacheable=False)
+            yield _emit_ndjson({"type": "done", "response": final_response})
+            return
+
+        answer_text = []
+        final_payload = None
+        for event in rag_pipeline.stream_generate_answer(combined_query):
+            if event["type"] == "chunk":
+                answer_text.append(event["delta"])
+                yield _emit_ndjson({"type": "chunk", "delta": event["delta"]})
+            else:
+                final_payload = event["response"]
+
+        if final_payload is None:
+            final_payload = {
+                "query": req.text,
+                "answer": "I encountered an error while processing your question. Please try again.",
+                "sources": [],
+                "retrieved": [],
+                "distances": [],
+            }
+
+        response_data = {
+            "query": req.text,
+            "analysis": cls,
+            "answer": final_payload.get("answer", ""),
+            "sources": final_payload.get("sources", []),
+            "sourceMetadata": final_payload.get("retrieved", []),
+            "screenshotUsed": screenshot_used,
+            "fromCache": False,
+        }
+
+        final_response = _finalize_rag_response(db, session, req, cls, response_data, cacheable=not req.file_ids)
+        yield _emit_ndjson({"type": "done", "response": final_response})
+
+    return StreamingResponse(event_stream(), media_type="application/x-ndjson")
+
+
+def _save_ticket(db: Session, query: str, cls: dict, response_data: dict):
+    """Helper — creates a Ticket row in the database."""
+    try:
+        # Generate ticket number (e.g. TKT-2026-001)
+        from datetime import datetime
+        year = datetime.now().year
+        count = db.query(Ticket).count() + 1
+        ticket_number = f"TKT-{year}-{str(count).zfill(3)}"
+
+        ticket = Ticket(
+            ticket_number=ticket_number,
+            query=query,
+            topic=cls.get("topic", "General Inquiry"),
+            sentiment=cls.get("sentiment", "Neutral"),
+            priority=cls.get("priority", "P2"),
+            status="Resolved",
+            ai_response=response_data.get("answer", ""),
+            sources=response_data.get("sources", []),
+            full_response=response_data
+        )
+        db.add(ticket)
+        db.commit()
+        db.refresh(ticket)
+
+        # Include ticket number in response so frontend can reference it
+        response_data["ticketNumber"] = ticket.ticket_number
+        response_data["ticketId"] = ticket.id
+
+    except Exception as e:
+        db.rollback()
+        print(f"Warning: Failed to save ticket to DB: {e}")
+        # Don't raise — the RAG response is still returned to the user
+
 
 # ---- Index Management Endpoints ----
 @app.post("/rebuild-index")
 def rebuild_knowledge_index():
-    """Rebuild the knowledge base index with all available data"""
+    """Rebuild the knowledge base index with all available data."""
     try:
         rebuild_index()
         return {"message": "Knowledge base index rebuilt successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/scrape-docs")
 def scrape_documentation():
-    """Scrape Atlan documentation and rebuild index"""
+    """Scrape Atlan documentation and rebuild index."""
     try:
         from web_scraper import scrape_atlan_docs
         result = scrape_atlan_docs()
-        rebuild_index()  # Rebuild index with new data
+        rebuild_index()
         return {
             "message": "Documentation scraped and index rebuilt successfully",
             "result": result
@@ -187,11 +554,11 @@ def scrape_documentation():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/index-stats")
 def get_index_stats():
-    """Get statistics about the knowledge base index"""
+    """Get statistics about the knowledge base index."""
     try:
-        from enhanced_rag_pipeline import rag_pipeline
         stats = rag_pipeline.get_stats()
         return stats
     except Exception as e:

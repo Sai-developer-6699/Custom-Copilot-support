@@ -33,11 +33,17 @@ __pycache__/
 *.pyd
 *.sqlite3
 *.db
-.env.*
+.env.local
+.env.production
+.env.staging
+# Note: .env.example IS committed intentionally (no real secrets)
 
 # FAISS and vectorstore
 backend/vectorstore/index.faiss
 backend/vectorstore/meta.pkl
+backend/uploads/
+backend/last_rag_response.json
+backend/last_rag_stream.ndjson
 
 # OS
 Thumbs.db

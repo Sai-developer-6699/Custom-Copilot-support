@@ -1,0 +1,20 @@
+node_modules
+# Keep environment variables out of version control
+.env
+
+/generated/prisma
+
+# Virtual environment and python caches
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# Local FAISS index database
+vectorstore/index.faiss
+vectorstore/meta.pkl
+
+# Uploaded documents and test run files
+uploads/
+last_rag_response.json
+last_rag_stream.ndjson

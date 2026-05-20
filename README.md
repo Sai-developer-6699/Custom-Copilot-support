@@ -6,7 +6,8 @@
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
 ![React](https://img.shields.io/badge/react-19.0-blue.svg)
 ![FastAPI](https://img.shields.io/badge/fastapi-0.116-green.svg)
-![OpenAI](https://img.shields.io/badge/openai-GPT--4o-brightgreen.svg)
+![Groq](https://img.shields.io/badge/groq-llama--3.1--8b--instant-blue.svg)
+![Sentence Transformers](https://img.shields.io/badge/embeddings-sentence--transformers-orange.svg)
 ![FAISS](https://img.shields.io/badge/faiss-Vector%20Search-orange.svg)
 ![Status](https://img.shields.io/badge/status-active-success.svg)
 
@@ -22,7 +23,7 @@ A full-stack AI-powered customer support system combining RAG (Retrieval-Augment
 
 ## 📖 Overview
 
-**Atlan AI Customer Support Copilot** is an intelligent support automation platform that uses advanced AI/ML to classify, route, and respond to customer inquiries. Built with FastAPI, React, and OpenAI's GPT models, it provides a production-ready solution for modern customer support workflows.
+**Atlan AI Customer Support Copilot** is an intelligent support automation platform that uses advanced AI/ML to classify, route, and respond to customer inquiries. Built with FastAPI, React, Groq, and local sentence-transformer embeddings, it provides a production-ready solution for modern customer support workflows.
 
 ### 🎯 The Problem
 Traditional customer support is slow, expensive, and repetitive. Agents spend hours answering the same questions, leading to:
@@ -110,7 +111,7 @@ An AI-powered copilot that:
 
 ### Backend
 - **FastAPI** - Modern Python web framework
-- **OpenAI API** - GPT-4o-mini for classification and generation
+- **Groq API** - llama-3.1-8b-instant for classification and generation
 - **FAISS** - Vector similarity search
 - **SQLAlchemy** - Database ORM (planned)
 - **BeautifulSoup** - Web scraping
@@ -127,8 +128,8 @@ An AI-powered copilot that:
 - **Lucide Icons** - Icon library
 
 ### AI/ML
-- **OpenAI Embeddings** - text-embedding-3-small
-- **GPT-4o-mini** - Classification and generation
+- **sentence-transformers** - local all-MiniLM-L6-v2 embeddings
+- **Groq llama-3.1-8b-instant** - Classification and generation
 - **FAISS** - Vector database
 - **RAG Pipeline** - Retrieval-augmented generation
 
@@ -146,7 +147,7 @@ An AI-powered copilot that:
 
 - Python 3.8+
 - Node.js 16+
-- OpenAI API key
+- Groq API key
 
 ### Installation
 
@@ -181,14 +182,14 @@ copy .env.example .env
 # macOS/Linux:
 cp .env.example .env
 
-# Edit .env file and add your OpenAI API key
-# OPENAI_API_KEY=your-actual-openai-api-key-here
+# Edit .env file and add your Groq API key
+# GROQ_API_KEY=your-actual-groq-api-key-here
 
 # Start backend server
 python -m uvicorn main:app --reload --port 8000
 ```
 
-**🚨 Important**: You need an OpenAI API key. Get one at [platform.openai.com](https://platform.openai.com/api-keys)
+**🚨 Important**: You need a Groq API key. Get one at [console.groq.com](https://console.groq.com/keys)
 
 The backend will be available at `http://localhost:8000`
 - API Docs: http://localhost:8000/docs
@@ -251,69 +252,62 @@ The frontend will be available at `http://localhost:3000`
 
 ### System Overview
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Frontend (React)                      │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │  Dashboard   │  │Chat Sidebar  │  │Ticket Table  │     │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘     │
-│         │                  │                  │             │
-│         └──────────────────┼──────────────────┘             │
-│                            │                                │
-│                    ┌───────▼────────┐                       │
-│                    │  Context API   │                       │
-│                    └───────┬────────┘                       │
-└────────────────────────────┼────────────────────────────────┘
-                             │ HTTP/REST
-┌────────────────────────────▼────────────────────────────────┐
-│                    Backend (FastAPI)                        │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │ Classifier   │  │ RAG Pipeline │  │ File Upload  │     │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘     │
-│         │                  │                  │             │
-│         │                  └──────────┬───────┘             │
-│         │                             │                     │
-│  ┌──────▼─────────┐       ┌──────────▼────────┐            │
-│  │   OpenAI API   │       │   FAISS Index     │            │
-│  └────────────────┘       └───────────────────┘            │
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │ Web Scraper  │  │ Data Loader  │  │   Storage    │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-└──────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+  U[User] --> F[Frontend React App]
+  F --> API[FastAPI Backend]
+
+  API --> C[classifier.py\nFew-shot JSON classification]
+  API --> R[rag_pipeline.py\nRetrieval + grounded answer]
+  API --> O[ocr_service.py\nScreenshot OCR cleanup]
+  API --> K[cache.py\nSHA-256 response cache]
+  API --> D[database.py + models\nTicket persistence]
+
+  R --> L[data_loader.py\nStructured docs + metadata]
+  L --> V[FAISS vector store]
+  R --> OAI[Local embeddings + Groq chat]
+
+  API --> H[/health endpoint\nDB, index, cache status/]
+  API --> I[/index-stats endpoint/]
 ```
 
-### Data Flow
+### Request Flow
 
+```text
+1. User submits a question
+2. Backend checks the response cache for text-only queries
+3. OCR text from uploaded images is cleaned and merged when present
+4. Ticket classification runs with few-shot JSON output
+5. P0 requests bypass RAG and escalate immediately
+6. Eligible requests run through retrieval with a relevance threshold
+7. Retrieved documents carry real source metadata into the answer payload
+8. Response is stored as a ticket and cached when safe to do so
 ```
-1. User Query
-   ↓
-2. Classification (Topic, Sentiment, Priority)
-   ↓
-3. Decision Logic:
-   - P0 → Escalate to Human
-   - Unknown Topic → Request Clarification
-   - Eligible Topic → RAG Pipeline
-   ↓
-4. RAG Pipeline:
-   a. Query Embedding
-   b. Vector Similarity Search (FAISS)
-   c. Context Retrieval (top-k)
-   d. LLM Generation
-   ↓
-5. Response Formatting
-   ↓
-6. Ticket Creation & Display
-```
+
+### Implementation Notes
+
+- `backend/rag_pipeline.py` is the primary RAG implementation.
+- `backend/enhanced_rag_pipeline.py` remains only as a compatibility copy for now.
+- The vector index build path batches embeddings and preserves source, title, type, and relevance metadata.
+- `/health` reports database, index, and cache status for basic observability.
+- The rationale behind the architecture is documented in [docs/decisions/README.md](./docs/decisions/README.md).
+
+### Decision Highlights
+
+- [Chunking, reranking, streaming, and history](./docs/decisions/0006-architecture-rag-chunking-hybrid-reranking-streaming-history.md)
+- [Groq, local embeddings, and Redis-ready caching](./docs/decisions/0007-engineering-groq-sentence-transformers-redis.md)
+- [Scaling the support workflow](./docs/decisions/0008-scaling-durable-support-workflow.md)
 
 ### Key Components
 
 #### Backend Services
-- **`classifier.py`**: Multi-dimensional ticket classification
-- **`enhanced_rag_pipeline.py`**: RAG implementation with FAISS
-- **`enhanced_data_loader.py`**: Multi-source document loading
+- **`classifier.py`**: Few-shot ticket classification with JSON output
+- **`rag_pipeline.py`**: Primary RAG implementation with FAISS and metadata-aware retrieval
+- **`data_loader.py`**: Structured document loading and source metadata preservation
 - **`web_scraper.py`**: Automated documentation extraction
-- **`main.py`**: FastAPI application with endpoints
+- **`ocr_service.py`**: Screenshot OCR with noise filtering
+- **`cache.py`**: SHA-256 response cache with TTL
+- **`main.py`**: FastAPI application with endpoints and routing
 
 #### Frontend Components
 - **`Dashboard`**: Main layout and orchestration
@@ -352,7 +346,8 @@ Response: {
   "query": "How do I connect to Snowflake?",
   "analysis": {...},
   "answer": "Detailed response with citations...",
-  "sources": ["product_docs/connection_guides", ...]
+   "sources": ["product_docs/connection_guides | ..."],
+   "sourceMetadata": [...]
 }
 ```
 
@@ -448,7 +443,7 @@ docker-compose up
 ### Environment Variables
 ```bash
 # Backend
-OPENAI_API_KEY=your-key-here
+GROQ_API_KEY=your-key-here
 DATABASE_URL=postgresql://...
 REDIS_URL=redis://... (for caching)
 
@@ -513,7 +508,7 @@ lsof -i :8000                # macOS/Linux
 python -m uvicorn main:app --reload --port 8001
 ```
 
-#### OpenAI API errors
+#### Groq API errors
 ```bash
 # Verify your API key is set
 # Windows:
@@ -521,9 +516,8 @@ type .env
 # macOS/Linux:
 cat .env
 
-# Test your key
-curl https://api.openai.com/v1/models \
-  -H "Authorization: Bearer YOUR_API_KEY"
+# Test your setup by starting the backend and checking /health
+python -m uvicorn main:app --reload --port 8000
 ```
 
 #### Frontend connection issues
@@ -579,7 +573,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- OpenAI for GPT models and embeddings
+- Groq for classification and generation, sentence-transformers for local embeddings
 - FastAPI for the excellent web framework
 - React team for the amazing UI library
 - Radix UI for accessible components
@@ -604,7 +598,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### ⭐ If you find this project helpful, please star it on GitHub!
 
-Made with ❤️ using React, FastAPI, and OpenAI
+Made with ❤️ using React, FastAPI, Groq, and sentence-transformers
 
 [⬆ Back to Top](#-atlan-ai-customer-support-copilot)
 

@@ -1,13 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, MessageSquare, Bot, User, Plus, Settings, HelpCircle, Paperclip, Image, File, X, Loader2 } from 'lucide-react';
+import { Send, MessageSquare, Bot, User, Plus, Settings, HelpCircle, Paperclip, Image, File, X, Loader2, BookOpen, ExternalLink, Sparkles, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import TypingLoader from './TypingLoader';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { ScrollArea } from '../ui/scroll-area';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { Badge } from '../ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { useBackend } from '../../contexts/BackendContext';
 
-const ChatSidebar = ({ onSubmit, onClose }) => {
+const ATLAN_DOCS_URL = 'https://developer.atlan.com/';
+
+const suggestedPrompts = [
+  'How do I create and test a custom package in Atlan?',
+  'What are the best practices for searching assets in Atlan?',
+  'How can I validate integration or UX flows using Atlan documentation?',
+];
+
+const ChatSidebar = ({ onSubmit, onClose, isOpen = true }) => {
   const [query, setQuery] = useState('');
   const [attachedFiles, setAttachedFiles] = useState([]);
   const fileInputRef = useRef(null);
@@ -40,7 +51,7 @@ const ChatSidebar = ({ onSubmit, onClose }) => {
     e.preventDefault();
     if (query.trim() || attachedFiles.length > 0) {
       const userQuery = query || 'File upload analysis';
-      
+
       // Add user message
       const userMessage = {
         id: Date.now(),
@@ -49,39 +60,63 @@ const ChatSidebar = ({ onSubmit, onClose }) => {
         files: attachedFiles,
         timestamp: new Date().toISOString()
       };
-      
+
       setMessages(prev => [...prev, userMessage]);
-      
+
       // Add AI thinking message
+      const hasScreenshots = attachedFiles.some(
+        f => f.status === 'success' && f.type?.startsWith('image/')
+      );
       const thinkingMessage = {
         id: Date.now() + 1,
         type: 'assistant',
-        content: 'Analyzing your query and files, generating response...',
+        content: hasScreenshots
+          ? 'Reading screenshot content via OCR, then generating response...'
+          : 'Analyzing your query and files, generating response...',
         timestamp: new Date().toISOString(),
         isThinking: true
       };
-      
+
       setMessages(prev => [...prev, thinkingMessage]);
-      
+
       try {
-        // Process query through backend
-        const response = await processQuery(userQuery);
-        
+        // Collect successfully uploaded image fileIds for OCR
+        const imageFileIds = attachedFiles
+          .filter(f => f.status === 'success' && f.fileId && f.type?.startsWith('image/'))
+          .map(f => f.fileId);
+
+        let streamedAnswer = '';
+
+        // Process query through backend (with optional OCR fileIds)
+        const response = await processQuery(userQuery, imageFileIds, {
+          onChunk: (chunk) => {
+            streamedAnswer += chunk;
+            setMessages(prev => prev.map(msg =>
+              msg.id === thinkingMessage.id
+                ? {
+                    ...msg,
+                    content: streamedAnswer,
+                    isThinking: true,
+                  }
+                : msg
+            ));
+          }
+        });
+
         // Update thinking message with actual response
         setMessages(prev => prev.map(msg => 
           msg.id === thinkingMessage.id 
             ? {
                 ...msg,
-                content: response.answer,
+                content: response.answer || streamedAnswer,
                 isThinking: false,
                 response: response
               }
             : msg
         ));
-        
+
         // Call the analysis modal with the response
         onSubmit(userQuery, response);
-        
       } catch (error) {
         // Update thinking message with error
         setMessages(prev => prev.map(msg => 
@@ -95,10 +130,10 @@ const ChatSidebar = ({ onSubmit, onClose }) => {
             : msg
         ));
       }
-      
+
       setQuery('');
       setAttachedFiles([]);
-      
+
       // Reset textarea height
       if (textareaRef.current) {
         textareaRef.current.style.height = '44px';
@@ -121,7 +156,9 @@ const ChatSidebar = ({ onSubmit, onClose }) => {
       'text/markdown',
       'image/jpeg',
       'image/png',
-      'image/gif'
+      'image/gif',
+      'image/webp',
+      'image/bmp'
     ];
 
     const validFiles = files.filter(file => {
@@ -243,8 +280,16 @@ const ChatSidebar = ({ onSubmit, onClose }) => {
     setAttachedFiles([]);
   };
 
+  const openAtlanDocs = () => {
+    window.open(ATLAN_DOCS_URL, '_blank', 'noopener,noreferrer');
+  };
+
   return (
-    <div className="w-96 bg-white border-l border-gray-200 flex flex-col fixed top-[84px] right-0 h-[calc(100vh-84px)] flex-shrink-0 z-30">
+    <div className={`w-96 bg-white border-l border-gray-200 flex flex-col fixed top-[84px] right-0 h-[calc(100vh-84px)] flex-shrink-0 z-30 transform transition-all duration-300 ease-out will-change-transform ${
+      isOpen
+        ? 'translate-x-0 opacity-100 pointer-events-auto'
+        : 'translate-x-full opacity-0 pointer-events-none lg:translate-x-0 lg:opacity-100 lg:pointer-events-auto'
+    }`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center space-x-2">
@@ -287,13 +332,77 @@ const ChatSidebar = ({ onSubmit, onClose }) => {
       {/* Chat Messages */}
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex items-start space-x-3 ${
-                message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''
-              }`}
-            >
+          <Card className="overflow-hidden border-blue-100 bg-gradient-to-br from-sky-50 via-white to-cyan-50 shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm">
+                    <BookOpen className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-gray-900">Explore Atlan Docs</CardTitle>
+                    <CardDescription className="text-xs text-gray-600">
+                      Query indexed Atlan documentation and compare how retrieval responds to real product questions.
+                    </CardDescription>
+                  </div>
+                </div>
+                <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Live RAG</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-0">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={openAtlanDocs}
+                  className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm"
+                >
+                  Open developer docs
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuery('Show me the best Atlan docs for testing search and integration flows.')}
+                  className="inline-flex items-center gap-2 rounded-full border border-transparent bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-sm"
+                >
+                  Try a prompt
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
+                  <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+                  Suggested prompts
+                </div>
+                <div className="grid gap-2">
+                  {suggestedPrompts.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => setQuery(prompt)}
+                      className="rounded-xl border border-gray-200 bg-white/80 px-3 py-2 text-left text-xs text-gray-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-white hover:text-gray-900 hover:shadow-sm"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <AnimatePresence initial={false} mode="popLayout">
+            {messages.map((message) => (
+              <motion.div
+                key={message.id}
+                layout
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                transition={{ duration: 0.18 }}
+                className={`flex items-start space-x-3 ${
+                  message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''
+                }`}
+              >
               <Avatar className="h-8 w-8">
                 <AvatarFallback className={`text-xs ${
                   message.type === 'user' 
@@ -305,26 +414,35 @@ const ChatSidebar = ({ onSubmit, onClose }) => {
               </Avatar>
               
               <div
-                className={`flex-1 max-w-xs ${
+                className={`flex-1 max-w-[18rem] ${
                   message.type === 'user' ? 'text-right' : 'text-left'
                 }`}
               >
                 <div
-                  className={`rounded-lg px-3 py-2 text-sm ${
+                  className={`rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm transition-all duration-300 ${
                     message.type === 'user'
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-gradient-to-br from-blue-600 to-sky-600 text-white shadow-blue-200/50'
                       : message.isThinking
-                      ? 'bg-gray-100 text-gray-600 animate-pulse'
-                      : 'bg-gray-100 text-gray-800'
+                      ? 'bg-gray-100 text-gray-600'
+                      : 'bg-white text-gray-800 ring-1 ring-gray-200'
                   }`}
                 >
-                  {message.content}
+                  <div className="flex items-center gap-2">
+                    {message.isThinking ? (
+                      <>
+                        <TypingLoader />
+                        <div className="text-xs text-gray-500 ml-2 truncate max-w-xs">{message.content}</div>
+                      </>
+                    ) : (
+                      <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                    )}
+                  </div>
                   
                   {/* Display attached files */}
                   {message.files && message.files.length > 0 && (
                     <div className="mt-2 space-y-1">
                       {message.files.map((file) => (
-                        <div key={file.id} className="flex items-center space-x-2 text-xs bg-black bg-opacity-10 rounded p-1">
+                        <div key={file.id} className="flex items-center space-x-2 rounded-lg bg-black/10 p-2 text-xs backdrop-blur-sm">
                           {getFileIcon(file.type)}
                           <span className="truncate flex-1">{file.name}</span>
                           <span className="text-xs opacity-75">{formatFileSize(file.size)}</span>
@@ -340,8 +458,9 @@ const ChatSidebar = ({ onSubmit, onClose }) => {
                   })}
                 </div>
               </div>
-            </div>
-          ))}
+            </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </ScrollArea>
 
@@ -396,7 +515,7 @@ const ChatSidebar = ({ onSubmit, onClose }) => {
                     handleSubmit(e);
                   }
                 }}
-                className="w-full pr-12 py-3 px-3 border border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg resize-none overflow-hidden min-h-[44px] max-h-32 text-sm leading-5"
+                className="w-full pr-12 py-3 px-3 border border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl resize-none overflow-hidden min-h-[44px] max-h-32 text-sm leading-5 transition-all duration-200"
                 style={{
                   minHeight: '44px',
                   maxHeight: '128px'
@@ -408,7 +527,7 @@ const ChatSidebar = ({ onSubmit, onClose }) => {
                   size="sm"
                   variant="ghost"
                   onClick={() => fileInputRef.current?.click()}
-                  className="h-8 w-8 p-0 text-gray-500 hover:text-blue-600"
+                  className="h-8 w-8 p-0 text-gray-500 transition-colors hover:text-blue-600"
                   title="Attach files"
                 >
                   <Paperclip className="h-4 w-4" />
@@ -417,7 +536,7 @@ const ChatSidebar = ({ onSubmit, onClose }) => {
                   type="submit"
                   disabled={(!query.trim() && attachedFiles.length === 0) || isProcessing}
                   size="sm"
-                  className="h-8 w-8 p-0 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md"
+                  className="h-8 w-8 rounded-md bg-blue-600 p-0 transition-all duration-200 hover:bg-blue-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isProcessing ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -433,14 +552,14 @@ const ChatSidebar = ({ onSubmit, onClose }) => {
             <div className="flex items-center space-x-4">
               <button
                 type="button"
-                className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                className="flex items-center space-x-1 transition-colors hover:text-blue-600"
               >
                 <MessageSquare className="h-3 w-3" />
                 <span>Examples</span>
               </button>
               <button
                 type="button"
-                className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                className="flex items-center space-x-1 transition-colors hover:text-blue-600"
               >
                 <HelpCircle className="h-3 w-3" />
                 <span>Help</span>

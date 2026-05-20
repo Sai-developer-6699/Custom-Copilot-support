@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Header from "./components/layout/Header";
@@ -10,10 +10,6 @@ import TerminalToggle from "./components/terminal/TerminalToggle";
 import { Toaster } from "./components/ui/toaster";
 import { BackendProvider } from "./contexts/BackendContext";
 import { TicketProvider } from "./contexts/TicketContext";
-import axios from "axios";
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,18 +44,6 @@ const Dashboard = () => {
     setIsChatSidebarVisible(!isChatSidebarVisible);
   };
 
-  // Test backend connection
-  useEffect(() => {
-    const testConnection = async () => {
-      try {
-        const response = await axios.get(`${API}/`);
-        console.log('Backend connected:', response.data.message);
-      } catch (e) {
-        console.error('Backend connection failed:', e);
-      }
-    };
-    testConnection();
-  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -97,8 +81,8 @@ const Dashboard = () => {
         </div>
 
         {/* Chat Sidebar */}
-        <div className={`lg:block ${isChatSidebarVisible ? 'block' : 'hidden'}`}>
-          <ChatSidebar onSubmit={handleQuerySubmit} onClose={toggleChatSidebar} />
+        <div className="lg:block">
+          <ChatSidebar onSubmit={handleQuerySubmit} onClose={toggleChatSidebar} isOpen={isChatSidebarVisible} />
         </div>
         
         {/* Mobile Overlay */}

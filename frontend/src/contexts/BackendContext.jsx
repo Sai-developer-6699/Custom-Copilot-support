@@ -13,6 +13,19 @@ export const useBackend = () => {
 };
 
 export const BackendProvider = ({ children }) => {
+  const [sessionId] = useState(() => {
+    try {
+      const existingSessionId = localStorage.getItem('atlan_chat_session_id');
+      if (existingSessionId) {
+        return existingSessionId;
+      }
+      const newSessionId = crypto.randomUUID();
+      localStorage.setItem('atlan_chat_session_id', newSessionId);
+      return newSessionId;
+    } catch {
+      return crypto.randomUUID();
+    }
+  });
   const [logs, setLogs] = useState([
     {
       id: 1,
@@ -24,7 +37,7 @@ export const BackendProvider = ({ children }) => {
   ]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastResponse, setLastResponse] = useState(null);
-  const { createTicket } = useTickets();
+  const { addTicketFromResponse } = useTickets();
 
   const addLog = useCallback((message, level = 'INFO', type = 'api') => {
     const newLog = {
@@ -37,11 +50,12 @@ export const BackendProvider = ({ children }) => {
     setLogs(prev => [...prev.slice(-50), newLog]); // Keep last 50 logs
   }, []);
 
-  const processQuery = useCallback(async (query) => {
+  const processQuery = useCallback(async (query, fileIds = [], options = {}) => {
     if (!query.trim()) return null;
 
     setIsProcessing(true);
     addLog(`Processing query: "${query}"`, 'INFO', 'user');
+    const onChunk = typeof options.onChunk === 'function' ? options.onChunk : null;
 
     try {
       // Add classification log
@@ -51,7 +65,19 @@ export const BackendProvider = ({ children }) => {
 
       // Add RAG processing log
       addLog('Generating RAG response...', 'INFO', 'system');
-      const response = await apiService.getRAGResponse(query);
+      if (fileIds.length > 0) {
+        addLog(`Including OCR text from ${fileIds.length} screenshot(s)`, 'INFO', 'system');
+      }
+      const response = await apiService.streamRAGResponse(
+        query,
+        fileIds,
+        sessionId,
+        (chunk) => {
+          if (onChunk) {
+            onChunk(chunk);
+          }
+        }
+      );
       addLog(`RAG response generated successfully`, 'INFO', 'system');
 
       // Log the response details
@@ -61,8 +87,8 @@ export const BackendProvider = ({ children }) => {
         addLog('HIGH PRIORITY ticket detected - escalating to human agent', 'WARN', 'escalation');
       }
 
-      // Create ticket with the response
-      const ticket = createTicket(query, response);
+      // Add ticket to local state (already persisted to DB by backend /rag)
+      const ticket = addTicketFromResponse(query, response);
       addLog(`Ticket created: ${ticket.ticketNumber}`, 'INFO', 'system');
 
       setLastResponse(response);
@@ -96,6 +122,7 @@ export const BackendProvider = ({ children }) => {
     logs,
     isProcessing,
     lastResponse,
+    sessionId,
     addLog,
     processQuery,
     clearLogs,

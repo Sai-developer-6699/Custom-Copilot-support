@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { apiService } from '../services/api';
 
 const TicketContext = createContext();
 
@@ -11,43 +12,67 @@ export const useTickets = () => {
 };
 
 export const TicketProvider = ({ children }) => {
-  const [tickets, setTickets] = useState([]);
-  const [nextTicketNumber, setNextTicketNumber] = useState(1);
+  // Seed from localStorage instantly so the UI isn't empty while DB loads
+  const [tickets, setTickets] = useState(() => {
+    try {
+      const saved = localStorage.getItem('atlan_tickets');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isLoadingTickets, setIsLoadingTickets] = useState(false);
 
-  const generateTicketNumber = useCallback(() => {
-    const year = new Date().getFullYear();
-    const ticketNum = `TKT-${year}-${String(nextTicketNumber).padStart(3, '0')}`;
-    setNextTicketNumber(prev => prev + 1);
-    return ticketNum;
-  }, [nextTicketNumber]);
+  // ---- Load tickets from DB on mount ----
+  const fetchTicketsFromDB = useCallback(async () => {
+    setIsLoadingTickets(true);
+    try {
+      const dbTickets = await apiService.getTickets();
+      setTickets(dbTickets);
+      // Update localStorage cache
+      localStorage.setItem('atlan_tickets', JSON.stringify(dbTickets));
+    } catch (err) {
+      console.warn('Could not reach backend — showing cached tickets:', err.message);
+      // Keep localStorage data — already loaded in useState initializer above
+    } finally {
+      setIsLoadingTickets(false);
+    }
+  }, []);
 
-  const createTicket = useCallback((query, response) => {
-    const ticketNumber = generateTicketNumber();
-    const analysis = response.analysis || {};
-    
+  useEffect(() => {
+    fetchTicketsFromDB();
+  }, [fetchTicketsFromDB]);
+
+  // ---- Optimistically add a ticket after a RAG response ----
+  // The ticket is already saved to DB by the backend /rag endpoint.
+  // We just add it to local state so the UI updates immediately without re-fetching.
+  const addTicketFromResponse = useCallback((query, response) => {
     const newTicket = {
-      id: Date.now(),
-      ticketNumber,
-      query: query,
-      topic: analysis.topic || 'General Inquiry',
-      sentiment: analysis.sentiment || 'Neutral',
-      priority: analysis.priority || 'P3',
-      response: response.answer || 'No response generated',
-      fullResponse: response, // Store complete response for modal
-      createdAt: new Date().toISOString(),
-      status: 'Resolved',
-      sources: response.sources || []
+      id:           response.ticketId   || Date.now(),
+      ticketNumber: response.ticketNumber || `TKT-LOCAL-${Date.now()}`,
+      query:        query,
+      topic:        response.analysis?.topic     || 'General Inquiry',
+      sentiment:    response.analysis?.sentiment || 'Neutral',
+      priority:     response.analysis?.priority  || 'P2',
+      status:       'Resolved',
+      response:     response.answer || 'No response generated',
+      fullResponse: response,
+      sources:      response.sources || [],
+      createdAt:    new Date().toISOString(),
     };
 
-    setTickets(prev => [newTicket, ...prev]); // Add to beginning of list
+    setTickets(prev => {
+      const updated = [newTicket, ...prev];
+      try { localStorage.setItem('atlan_tickets', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+
     return newTicket;
-  }, [generateTicketNumber]);
+  }, []);
 
   const updateTicket = useCallback((ticketId, updates) => {
-    setTickets(prev => prev.map(ticket => 
-      ticket.id === ticketId 
-        ? { ...ticket, ...updates }
-        : ticket
+    setTickets(prev => prev.map(ticket =>
+      ticket.id === ticketId ? { ...ticket, ...updates } : ticket
     ));
   }, []);
 
@@ -69,44 +94,30 @@ export const TicketProvider = ({ children }) => {
 
   const clearAllTickets = useCallback(() => {
     setTickets([]);
-    setNextTicketNumber(1);
+    localStorage.removeItem('atlan_tickets');
+    localStorage.removeItem('atlan_ticket_counter');
   }, []);
 
   const getTicketStats = useCallback(() => {
     const total = tickets.length;
-    const byStatus = tickets.reduce((acc, ticket) => {
-      acc[ticket.status] = (acc[ticket.status] || 0) + 1;
-      return acc;
-    }, {});
-    
-    const byPriority = tickets.reduce((acc, ticket) => {
-      acc[ticket.priority] = (acc[ticket.priority] || 0) + 1;
-      return acc;
-    }, {});
-
-    const bySentiment = tickets.reduce((acc, ticket) => {
-      acc[ticket.sentiment] = (acc[ticket.sentiment] || 0) + 1;
-      return acc;
-    }, {});
-
-    return {
-      total,
-      byStatus,
-      byPriority,
-      bySentiment
-    };
+    const byStatus   = tickets.reduce((acc, t) => { acc[t.status]    = (acc[t.status]    || 0) + 1; return acc; }, {});
+    const byPriority = tickets.reduce((acc, t) => { acc[t.priority]  = (acc[t.priority]  || 0) + 1; return acc; }, {});
+    const bySentiment = tickets.reduce((acc, t) => { acc[t.sentiment] = (acc[t.sentiment] || 0) + 1; return acc; }, {});
+    return { total, byStatus, byPriority, bySentiment };
   }, [tickets]);
 
   const value = {
     tickets,
-    createTicket,
+    isLoadingTickets,
+    addTicketFromResponse,
+    fetchTicketsFromDB,
     updateTicket,
     deleteTicket,
     getTicketById,
     getTicketsByStatus,
     getTicketsByPriority,
     clearAllTickets,
-    getTicketStats
+    getTicketStats,
   };
 
   return (
