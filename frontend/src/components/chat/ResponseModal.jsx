@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Brain, MessageSquare, Loader2, ExternalLink, Sparkles } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import TypingLoader from './TypingLoader';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/shadcn/Dialog';
 import { Badge } from '../ui/shadcn/Badge';
@@ -60,6 +60,15 @@ const ResponseModal = ({ isOpen, onClose, query, response }) => {
   // Memoize normalized sources to avoid re-computing during render
   const normalizedSources = useMemo(() => getNormalizedSources(analysis), [analysis]);
 
+  // Respect user's reduced-motion preference
+  const reduceMotion = useReducedMotion();
+  const motionInProps = reduceMotion
+    ? {}
+    : { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 } };
+  const motionAnswerProps = reduceMotion
+    ? {}
+    : { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.18 } };
+
   const fetchAnalysis = async () => {
     setLoading(true);
     setError(null);
@@ -109,7 +118,7 @@ const ResponseModal = ({ isOpen, onClose, query, response }) => {
           </div>
 
           {loading && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-10">
+            <motion.div {...motionInProps} className="flex items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white py-10">
               <div className="mr-3"><TypingLoader /></div>
               <span className="ml-3 text-sm text-slate-600">Analyzing your request...</span>
             </motion.div>
@@ -200,7 +209,7 @@ const ResponseModal = ({ isOpen, onClose, query, response }) => {
                     <CardTitle className="text-lg text-slate-900">AI Generated Response</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }} className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6 shadow-sm">
+                    <motion.div {...motionAnswerProps} className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-6 shadow-sm">
                       <p className="whitespace-pre-wrap text-sm leading-7 text-slate-800">
                         {analysis.answer}
                       </p>
