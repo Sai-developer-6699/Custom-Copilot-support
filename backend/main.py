@@ -42,22 +42,10 @@ def startup():
     """Create all tables on startup if they don't already exist."""
     Base.metadata.create_all(bind=engine)
     print("✅ Database tables ready")
-    
-    # Load heavy ML models in a background thread so uvicorn binds to the port immediately
-    import threading
-    def load_models_background():
-        try:
-            from rag_pipeline import _get_embedding_model, _get_reranker_model
-            print("Background loading of ML models started...")
-            _get_embedding_model()
-            _get_reranker_model()
-            print("✅ Background ML models loaded successfully")
-        except Exception as e:
-            print(f"Warning: Failed to background load models: {e}")
-            
-    thread = threading.Thread(target=load_models_background)
-    thread.daemon = True
-    thread.start()
+    # ML models (SentenceTransformer, CrossEncoder) are lazy-loaded on
+    # first /rag request.  Eager pre-loading was removed because it
+    # imports PyTorch (~350 MB RAM) which exceeds Render Free Tier's
+    # 512 MB limit and causes OOM kills on ALL endpoints.
 
 
 

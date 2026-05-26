@@ -49,6 +49,11 @@ def _get_reranker_model():
     """Lazy singleton for CrossEncoder reranker model."""
     global _reranker_model
     if _reranker_model is None:
+        import os
+        # Disable heavy reranker on Render Free Tier to avoid Out Of Memory (512MB RAM) crashes
+        if os.getenv("RENDER") == "true":
+            print("[RERANK] Running on Render: Disabling Cross-Encoder reranker to prevent Out-Of-Memory (OOM) crashes.")
+            return None
         from sentence_transformers import CrossEncoder
         print("Loading CrossEncoder model 'cross-encoder/ms-marco-MiniLM-L-6-v2'...")
         _reranker_model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
@@ -403,6 +408,12 @@ class RAGPipeline:
         
         # Load local CrossEncoder
         model = _get_reranker_model()
+        if model is None:
+            # Fallback: Just return candidates using RRF/semantic scores as proxy
+            for doc in candidate_docs:
+                doc["rerank_score"] = float(doc.get("rrf_score", doc.get("semantic_score", 0.0)))
+                doc["relevance_score"] = doc["rerank_score"]
+            return candidate_docs[:top_n]
         
         # Construct pairs for model prediction
         pairs = [[query, doc["text"]] for doc in candidate_docs]
@@ -469,6 +480,11 @@ class RAGPipeline:
         enable_rerank: bool = True,
     ):
         """Return top-k relevant docs using hybrid search, multi-query expansion, topic pre-routing, and Cross-Encoder reranking."""
+        # Lazy load index on first call (for Render deferred startup)
+        if self.index is None and self.index_path.exists():
+            print("Loading FAISS index (lazy, first /rag request)...")
+            self.load_index()
+            print(f"✅ FAISS index loaded: {len(self.docs)} chunks")
         if self.index is None or self.docs is None:
             raise ValueError("Index not loaded. Call load_index() first.")
 
@@ -1025,7 +1041,14 @@ if __name__ == "__main__":
     print("Answer:", result["answer"][:200])
     print("Stats:", rag_pipeline.get_stats())
 else:
-    rag_pipeline.load_index()
-    if rag_pipeline.index is None:
-        print("No existing index — building now...")
-        rag_pipeline.build_index()
+    import os as _os
+    if _os.getenv("RENDER") != "true":
+        # Local dev: eager load is fine (plenty of RAM)
+        rag_pipeline.load_index()
+        if rag_pipeline.index is None:
+            print("No existing index — building now...")
+            rag_pipeline.build_index()
+    else:
+        # Render: defer index + model loading to first /rag request
+        # to keep startup RAM low (<100MB) and avoid OOM on 512MB tier.
+        print("Running on Render — deferring index load to first /rag request.")
