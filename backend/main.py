@@ -42,15 +42,22 @@ def startup():
     """Create all tables on startup if they don't already exist."""
     Base.metadata.create_all(bind=engine)
     print("✅ Database tables ready")
-    try:
-        # Pre-load embedding and reranking models on startup to avoid request timeouts
-        from rag_pipeline import _get_embedding_model, _get_reranker_model
-        print("Pre-loading models...")
-        _get_embedding_model()
-        _get_reranker_model()
-        print("✅ Models pre-loaded successfully")
-    except Exception as e:
-        print(f"Warning: Failed to pre-load models: {e}")
+    
+    # Load heavy ML models in a background thread so uvicorn binds to the port immediately
+    import threading
+    def load_models_background():
+        try:
+            from rag_pipeline import _get_embedding_model, _get_reranker_model
+            print("Background loading of ML models started...")
+            _get_embedding_model()
+            _get_reranker_model()
+            print("✅ Background ML models loaded successfully")
+        except Exception as e:
+            print(f"Warning: Failed to background load models: {e}")
+            
+    thread = threading.Thread(target=load_models_background)
+    thread.daemon = True
+    thread.start()
 
 
 
