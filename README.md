@@ -402,28 +402,12 @@ npm run test:e2e
 
 ## 🚢 Deployment
 
-### Docker (Planned)
-```bash
-docker-compose up
-```
+The project is structured for easy cloud deployment:
+* **Backend:** Hosted on **Render** as a Python Web Service.
+* **Frontend:** Hosted on **Vercel** as a Vite React SPA.
+* **Database:** Hosted on **Supabase** (PostgreSQL).
 
-### Manual Deployment
-1. Install dependencies on server
-2. Configure environment variables
-3. Run migrations (when database added)
-4. Start with gunicorn/uvicorn
-5. Serve frontend with nginx
-
-### Environment Variables
-```bash
-# Backend
-GROQ_API_KEY=your-key-here
-DATABASE_URL=postgresql://...
-REDIS_URL=redis://... (for caching)
-
-# Frontend
-VITE_BACKEND_URL=http://your-backend-url
-```
+For a complete, step-by-step walkthrough covering database migrations, environment variables, Vercel proxies, and Render Free Tier spin-down considerations, see the **[Production Deployment Guide](./DEPLOYMENT.md)**.
 
 ---
 
