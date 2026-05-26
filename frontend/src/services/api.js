@@ -3,7 +3,7 @@ import axios from 'axios';
 // Create axios instance with base configuration
 const api = axios.create({
   baseURL: '/api', // This will be proxied to http://localhost:8000
-  timeout: 30000, // 30 seconds timeout
+  timeout: 120000, // 120 seconds timeout to accommodate Render Free Tier cold starts (50-90s)
   headers: {
     'Content-Type': 'application/json',
   },

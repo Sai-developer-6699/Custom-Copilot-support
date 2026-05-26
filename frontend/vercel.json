@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://support-copilot-rag-backend.onrender.com/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
   ]
 }
