@@ -1,6 +1,7 @@
 # backend/models/ticket.py
 from sqlalchemy import Column, Integer, String, Text, DateTime, func
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import relationship
 from database import Base
 
 
@@ -17,8 +18,12 @@ class Ticket(Base):
     ai_response   = Column(Text, nullable=True)
     sources       = Column(JSONB, default=list)        # e.g. ["document_1", "document_3"]
     full_response = Column(JSONB, nullable=True)       # full RAG response object for modal
+    metadata_scope = Column(JSONB, nullable=True)      # e.g. {"connector": "Snowflake", "surface": "Lineage"}
     created_at    = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     updated_at    = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    metrics = relationship("TicketEvaluationMetric", back_populates="ticket", cascade="all, delete-orphan")
 
     def to_dict(self):
         """Serialize to dict for API responses — matches the frontend's ticket shape."""
@@ -33,5 +38,7 @@ class Ticket(Base):
             "response":      self.ai_response,
             "sources":       self.sources or [],
             "fullResponse":  self.full_response,
+            "metadataScope": self.metadata_scope,
             "createdAt":     self.created_at.isoformat() if self.created_at else None,
         }
+

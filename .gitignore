@@ -39,8 +39,6 @@ __pycache__/
 # Note: .env.example IS committed intentionally (no real secrets)
 
 # FAISS and vectorstore
-backend/vectorstore/index.faiss
-backend/vectorstore/meta.pkl
 backend/uploads/
 backend/last_rag_response.json
 backend/last_rag_stream.ndjson
@@ -99,3 +97,27 @@ venv.bak/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Diagnostic files and screenshots
+backend/Screenshot*
+backend/diagnostics_3run/
+backend/diagnostics_3run_logs/
+backend/diagnostics_test/
+backend/validation_report.json
+*.png
+*.jpg
+*.jpeg
+*.webp
+
+# Temporary test/scraped data and root-level index copies
+/vectorstore/
+/scraped_data/
+test.pdf
+
+# Raw scraped documentation databases (compiled index is tracked/deployed instead)
+backend/scraped_data/
+
+# Local utility/rebuild test scripts
+backend/test_gemini_rebuild.py
+backend/test_uploaded_file_rag.py
+backend/check_pdf.py

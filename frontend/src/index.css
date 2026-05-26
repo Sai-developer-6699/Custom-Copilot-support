@@ -100,3 +100,41 @@ code {
   background: hsl(240 4% 30%);
 }
 
+@layer utilities {
+  /* Glassmorphism panel styling */
+  .glass-card {
+    background: rgba(18, 18, 24, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+
+  /* Glowing background radial gradient aura */
+  .bg-radial-glow {
+    background: radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.15) 0%, rgba(0, 0, 0, 0) 60%);
+  }
+}
+
+/* Moving grid background keyframe configuration */
+@keyframes grid-infinite-scroll {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(40px); }
+}
+
+.animate-grid-scroll {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  animation: grid-infinite-scroll 10s linear infinite;
+}
+
+/* Border beam keyframe configuration */
+@keyframes border-beam-move {
+  100% {
+    offset-distance: 100%;
+  }
+}
+
+

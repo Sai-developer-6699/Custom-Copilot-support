@@ -1,0 +1,52 @@
+[
+  {
+    "eval_id": "eval_001",
+    "query": "How do I resolve distributed locking issues or a 409 conflict during Atlan asset lineage syncing?",
+    "ground_truth": "Distributed locking issues or 409 conflicts during lineage sync are resolved by clearing write-caches on the metadata governance dashboard, forcing an upstream dbt-manifest sync, or ensuring lock keys are released properly in the Application SDK."
+  },
+  {
+    "eval_id": "eval_002",
+    "query": "How does Atlan connect with Snowflake using OAuth?",
+    "ground_truth": "Atlan connects with Snowflake using OAuth by configuring PingFederate as the identity provider, setting up a GCS external volume, and mapping credentials inside the Admin settings."
+  },
+  {
+    "eval_id": "eval_003",
+    "query": "What are the preflight checks and requirements to connect Snowflake to Atlan?",
+    "ground_truth": "Preflight checks for Snowflake connection include verifying access to the Snowflake account URL, setting up warehouse and database permissions for the crawler user, and checking network/IP allowlists."
+  },
+  {
+    "eval_id": "eval_004",
+    "query": "How do I configure metadata crawler ingestion for database connectors?",
+    "ground_truth": "To configure metadata ingestion, navigate to the integrations tab, select your database connector, provide credentials, specify schemas to include/exclude, and define a schedule for running the crawler."
+  },
+  {
+    "eval_id": "eval_005",
+    "query": "What security protocols are supported for Atlan metadata synchronization?",
+    "ground_truth": "Atlan supports secure metadata synchronization using OAuth, SSO integrations (like PingFederate), encrypted credentials store, and private network links such as AWS PrivateLink."
+  },
+  {
+    "eval_id": "eval_006",
+    "query": "How do I set up data governance and manage metadata tags in Atlan?",
+    "ground_truth": "Data governance in Atlan is managed by defining governance workflows, setting up glossaries, and creating custom metadata sets or tags to apply categorization across assets."
+  },
+  {
+    "eval_id": "eval_007",
+    "query": "How does Atlan's Application SDK handle distributed locking troubleshooting?",
+    "ground_truth": "The Application SDK manages locks across distributed processes to prevent write collisions. Troubleshooting locking issues involves verifying connection states, lock time-to-live settings, and release hooks."
+  },
+  {
+    "eval_id": "eval_008",
+    "query": "How do I configure PingFederate OAuth authentication for Snowflake in Atlan?",
+    "ground_truth": "Configuring PingFederate OAuth involves registering Atlan as an OAuth client in PingFederate, mapping the authorization and token endpoints in Atlan, and configuring role mappings."
+  },
+  {
+    "eval_id": "eval_009",
+    "query": "How does Atlan extract lineage mappings and asset popularity from warehouses?",
+    "ground_truth": "Lineage mappings and popularity metrics are extracted by mining Snowflake query logs, resolving join relations and dataflows between tables, and displaying them in the lineage graph."
+  },
+  {
+    "eval_id": "eval_010",
+    "query": "What is Atlan's metadata governance dashboard and how is it used?",
+    "ground_truth": "The metadata governance dashboard provides an administrative interface to audit metadata completeness, view lineage logs, monitor crawler health, and manage active sync tasks."
+  }
+]

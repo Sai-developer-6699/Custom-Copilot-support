@@ -5,28 +5,34 @@ from typing import List, Dict, Any
 import re
 
 class DataLoader:
-    def __init__(self, data_dir="data", scraped_dir="scraped_data"):
+    def __init__(self, data_dir=None, scraped_dir=None):
+        base_dir = Path(__file__).resolve().parent
+        if data_dir is None:
+            data_dir = base_dir / "data"
+        if scraped_dir is None:
+            scraped_dir = base_dir / "scraped_data"
         self.data_dir = Path(data_dir)
         self.scraped_dir = Path(scraped_dir)
         self.data_dir.mkdir(exist_ok=True)
         self.scraped_dir.mkdir(exist_ok=True)
         
     def load_existing_data(self) -> List[Dict[str, Any]]:
-        """Load existing data from data directory"""
+        """Load existing data from data directory dynamically"""
         documents = []
-        
-        # Load snowflake.txt
-        snowflake_file = self.data_dir / "snowflake.txt"
-        if snowflake_file.exists():
-            with open(snowflake_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                documents.append({
-                    'source': 'snowflake.txt',
-                    'content': content,
-                    'type': 'existing_data'
-                })
-        
+        for file_path in self.data_dir.glob("*"):
+            if file_path.is_file() and file_path.suffix in {".txt", ".md", ".json"}:
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        documents.append({
+                            'source': file_path.name,
+                            'content': content,
+                            'type': 'existing_data'
+                        })
+                except Exception as e:
+                    print(f"Error loading file {file_path}: {e}")
         return documents
+
     
     def load_scraped_data(self) -> List[Dict[str, Any]]:
         """Load scraped data from scraped_data directory"""
@@ -38,6 +44,9 @@ class DataLoader:
             with open(product_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 for item in data:
+                    url_lower = item.get('url', '').lower()
+                    if any(p in url_lower for p in ['/tags/', '/category/', '/categories/', '/page/']):
+                        continue
                     documents.append({
                         'source': f"product_docs/{item['url']}",
                         'content': item['content'],
@@ -53,6 +62,9 @@ class DataLoader:
             with open(api_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 for item in data:
+                    url_lower = item.get('url', '').lower()
+                    if any(p in url_lower for p in ['/tags/', '/category/', '/categories/', '/page/']):
+                        continue
                     documents.append({
                         'source': f"api_docs/{item['url']}",
                         'content': item['content'],
@@ -64,9 +76,11 @@ class DataLoader:
         
         return documents
     
-    def load_uploaded_files(self, uploads_dir="uploads") -> List[Dict[str, Any]]:
+    def load_uploaded_files(self, uploads_dir=None) -> List[Dict[str, Any]]:
         """Load uploaded files from uploads directory"""
         documents = []
+        if uploads_dir is None:
+            uploads_dir = Path(__file__).resolve().parent / "uploads"
         uploads_path = Path(uploads_dir)
         
         if uploads_path.exists():
@@ -124,8 +138,8 @@ class DataLoader:
         
         return "\n\n".join(content_parts)
     
-    def get_all_documents(self) -> List[str]:
-        """Return all documents as plain text strings ready for embedding."""
+    def get_all_documents(self) -> List[Dict[str, Any]]:
+        """Return all documents as dicts with processed text and metadata ready for embedding."""
         all_docs = []
 
         all_docs.extend(self.load_existing_data())
@@ -136,7 +150,23 @@ class DataLoader:
         for doc in all_docs:
             text = self.process_document(doc)
             if text.strip():
-                processed.append(text)   # plain string, NOT a dict
+                # Extract clean url from source path
+                raw_source = doc.get('source', '')
+                clean_url = raw_source
+                if raw_source.startswith('product_docs/'):
+                    clean_url = raw_source[len('product_docs/'):]
+                elif raw_source.startswith('api_docs/'):
+                    clean_url = raw_source[len('api_docs/'):]
+                elif raw_source.startswith('uploaded/'):
+                    clean_url = raw_source[len('uploaded/'):]
+
+                processed.append({
+                    'text': text,
+                    'title': doc.get('title', ''),
+                    'url': clean_url,
+                    'source': raw_source,
+                    'type': doc.get('type', '')
+                })
 
         return processed
     
@@ -185,7 +215,7 @@ def main():
     # Show sample document
     if documents:
         print(f"\nSample document (first 500 chars):")
-        print(documents[0][:500] + "...")
+        print(documents[0]['text'][:500] + "...")
 
 if __name__ == "__main__":
     main()

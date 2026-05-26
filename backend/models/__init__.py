@@ -4,3 +4,5 @@
 from .ticket import Ticket
 from .chat import ChatSession, ChatMessage
 from .uploaded_file import UploadedFile
+from .metrics import TicketEvaluationMetric, RetrievedChunkSource
+

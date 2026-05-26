@@ -1,13 +1,13 @@
 # classifier.py
-import os, json
-from groq import Groq
+import json
 from dotenv import load_dotenv
+
+from llm_clients import GROQ_MODEL_FAST as GROQ_MODEL, get_groq_client
 
 load_dotenv()
 
 # Groq client — fast LLM, generous free tier
-_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-GROQ_MODEL = os.getenv("GROQ_MODEL_FAST", "llama-3.1-8b-instant")
+_client = get_groq_client()
 
 # ---- Few-shot examples for reliable classification ----
 FEW_SHOT_EXAMPLES = """

@@ -10,9 +10,6 @@ venv/
 __pycache__/
 *.py[cod]
 
-# Local FAISS index database
-vectorstore/index.faiss
-vectorstore/meta.pkl
 
 # Uploaded documents and test run files
 uploads/
