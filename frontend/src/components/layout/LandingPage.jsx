@@ -46,7 +46,7 @@ export default function LandingPage() {
               <ArrowRight className="w-4 h-4" />
             </Link>
             <a
-              href="https://github.com/Sai-developer-6699/Custom-Copilot-support"
+              href="https://github.com/Sai-developer-6699/support-copilot-rag"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center space-x-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-semibold px-6 py-3.5 rounded-xl border border-zinc-800 transition-colors"

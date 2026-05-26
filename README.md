@@ -1,4 +1,4 @@
-# 🤖 Atlan AI Customer Support Copilot
+# 🤖 Support Copilot RAG — Multi-Source Information Retrieval System
 
 <div align="center">
 
@@ -128,8 +128,8 @@ The project integrates a dual-engine vector/lexical search pipeline, few-shot LL
 #### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Sai-developer-6699/Atlan-AI.git
-cd atlan-ai
+git clone https://github.com/Sai-developer-6699/support-copilot-rag.git
+cd support-copilot-rag
 ```
 
 #### 2. Backend Setup
@@ -563,8 +563,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Project Links**:
 - 🌐 Live Demo: [Coming Soon](#)
 - 📊 Documentation: [Full Docs](./INTEGRATION_SETUP.md)
-- 🐛 Issues: [Report Bug](https://github.com/Sai-developer-6699/Atlan-AI/issues)
-- 💡 Features: [Request Feature](https://github.com/Sai-developer-6699/Atlan-AI/issues/new)
+- 🐛 Issues: [Report Bug](https://github.com/Sai-developer-6699/support-copilot-rag/issues)
+- 💡 Features: [Request Feature](https://github.com/Sai-developer-6699/support-copilot-rag/issues/new)
 
 ---
 
@@ -574,6 +574,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Made with ❤️ using React, FastAPI, Groq, and sentence-transformers
 
-[⬆ Back to Top](#-atlan-ai-customer-support-copilot)
+[⬆ Back to Top](#-support-copilot-rag--multi-source-information-retrieval-system)
 
 </div>
