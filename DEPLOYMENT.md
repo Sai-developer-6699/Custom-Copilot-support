@@ -42,7 +42,7 @@ Deploy the Python FastAPI application as a **Web Service** on Render.
    * **Name:** `support-copilot-rag` (or custom name)
    * **Language:** `Python 3`
    * **Root Directory:** `backend` *(Crucial: pointing to the subfolder)*
-   * **Build Command:** `pip install -r requirements.txt`
+   * **Build Command:** `pip install --no-cache-dir -r requirements.txt`
    * **Start Command:** `python -m uvicorn main:app --host 0.0.0.0 --port $PORT`
 
 ### 2. Configure Environment Variables
