@@ -14,6 +14,7 @@ from typing import Optional
 from dotenv import load_dotenv
 import time
 BASE_DIR = Path(__file__).resolve().parent
+MODEL_CACHE_DIR = BASE_DIR / ".model_cache"
 load_dotenv(BASE_DIR / ".env")
 
 # ---- Groq client (used for answer GENERATION — fast, generous free tier) ----
@@ -36,15 +37,22 @@ class ONNXEmbeddingModel:
         import onnxruntime as ort
         from transformers import AutoTokenizer
         
-        print("Downloading/loading ONNX embedding model 'optimum/all-MiniLM-L6-v2'...")
-        # Download ONNX model file from HF Hub
-        model_path = hf_hub_download(repo_id="optimum/all-MiniLM-L6-v2", filename="model.onnx")
+        print(f"Loading ONNX embedding model from local cache '{MODEL_CACHE_DIR}'...")
+        # Download ONNX model file from HF Hub to local cache dir
+        model_path = hf_hub_download(
+            repo_id="optimum/all-MiniLM-L6-v2", 
+            filename="model.onnx",
+            cache_dir=str(MODEL_CACHE_DIR)
+        )
         
         # Load the ONNX session
         self.session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
         
-        # Load the tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained("optimum/all-MiniLM-L6-v2")
+        # Load the tokenizer using local cache dir
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            "optimum/all-MiniLM-L6-v2",
+            cache_dir=str(MODEL_CACHE_DIR)
+        )
         print("ONNX embedding model ready.")
         
     def encode(self, texts, normalize_embeddings=True, **kwargs):
