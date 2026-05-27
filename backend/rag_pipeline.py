@@ -14,7 +14,6 @@ from typing import Optional
 from dotenv import load_dotenv
 import time
 BASE_DIR = Path(__file__).resolve().parent
-MODEL_CACHE_DIR = BASE_DIR / ".model_cache"
 load_dotenv(BASE_DIR / ".env")
 
 # ---- Groq client (used for answer GENERATION — fast, generous free tier) ----
@@ -33,17 +32,14 @@ DEFAULT_RERANK_THRESHOLD = -3.0
 
 class ONNXEmbeddingModel:
     def __init__(self):
-        from huggingface_hub import hf_hub_download
         import onnxruntime as ort
         from transformers import AutoTokenizer
         
-        print(f"Loading ONNX embedding model from local cache '{MODEL_CACHE_DIR}'...")
-        # Download ONNX model file from HF Hub to local cache dir
-        model_path = hf_hub_download(
-            repo_id="optimum/all-MiniLM-L6-v2", 
-            filename="model.onnx",
-            cache_dir=str(MODEL_CACHE_DIR)
-        )
+        # Local paths in backend/onnx_model
+        model_dir = Path(__file__).resolve().parent / "onnx_model"
+        model_path = model_dir / "model.onnx"
+        
+        print(f"Loading ONNX embedding model directly from local directory '{model_dir}'...")
         
         # Configure single-threaded execution to prevent spin-waiting/CPU throttling on Render
         import os
@@ -55,14 +51,11 @@ class ONNXEmbeddingModel:
         sess_options.inter_op_num_threads = 1
         sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
         
-        # Load the ONNX session
-        self.session = ort.InferenceSession(model_path, sess_options, providers=["CPUExecutionProvider"])
+        # Load the ONNX session directly from disk
+        self.session = ort.InferenceSession(str(model_path), sess_options, providers=["CPUExecutionProvider"])
         
-        # Load the tokenizer using local cache dir
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            "optimum/all-MiniLM-L6-v2",
-            cache_dir=str(MODEL_CACHE_DIR)
-        )
+        # Load the tokenizer directly from disk
+        self.tokenizer = AutoTokenizer.from_pretrained(str(model_dir), local_files_only=True)
         print("ONNX embedding model ready.")
         
     def encode(self, texts, normalize_embeddings=True, **kwargs):
