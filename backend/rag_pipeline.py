@@ -1,4 +1,11 @@
 # rag_pipeline.py
+import os
+# Configure single-threaded execution and passive wait policy for ONNX runtime
+# before any other libraries are loaded to prevent high CPU usage/spin locks
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OMP_WAIT_POLICY"] = "PASSIVE"
+
 import numpy as np
 import pickle
 import faiss
@@ -45,11 +52,14 @@ class ONNXEmbeddingModel:
         import os
         os.environ["OMP_NUM_THREADS"] = "1"
         os.environ["MKL_NUM_THREADS"] = "1"
+        os.environ["OMP_WAIT_POLICY"] = "PASSIVE"
         
         sess_options = ort.SessionOptions()
         sess_options.intra_op_num_threads = 1
         sess_options.inter_op_num_threads = 1
         sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+        sess_options.add_session_config_entry('session.intra_op.allow_spinning', '0')
+        sess_options.add_session_config_entry('session.inter_op.allow_spinning', '0')
         
         # Load the ONNX session directly from disk
         self.session = ort.InferenceSession(str(model_path), sess_options, providers=["CPUExecutionProvider"])

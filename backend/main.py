@@ -1,3 +1,10 @@
+import os
+# Configure single-threaded execution and passive wait policy for ONNX runtime
+# before any other libraries are loaded to prevent high CPU usage/spin locks
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OMP_WAIT_POLICY"] = "PASSIVE"
+
 import json
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -42,10 +49,27 @@ def startup():
     """Create all tables on startup if they don't already exist."""
     Base.metadata.create_all(bind=engine)
     print("✅ Database tables ready")
-    # ML models (SentenceTransformer, CrossEncoder) are lazy-loaded on
-    # first /rag request.  Eager pre-loading was removed because it
-    # imports PyTorch (~350 MB RAM) which exceeds Render Free Tier's
-    # 512 MB limit and causes OOM kills on ALL endpoints.
+    
+    # Eagerly pre-load index and ONNX embedding model on startup when USE_ONNX is enabled.
+    # This prevents the first request from timing out on Vercel's 10s proxy limit.
+    # We only do this if USE_ONNX is true, because standard SentenceTransformer/PyTorch
+    # is too heavy (~350MB RAM) and causes OOM crashes on Render. ONNX is lightweight (~80-100MB RAM).
+    import os
+    if os.getenv("USE_ONNX") == "true":
+        print("🚀 [STARTUP] USE_ONNX is true: Eagerly loading FAISS index, ONNX embedding model, and reranker...")
+        try:
+            from rag_pipeline import rag_pipeline, _get_embedding_model, _get_reranker_model
+            # Eagerly load FAISS and BM25 index
+            rag_pipeline._ensure_index_loaded()
+            # Eagerly initialize ONNX embedding model
+            _get_embedding_model()
+            # Eagerly initialize reranker model (if enabled / not on Render)
+            _get_reranker_model()
+            print("🚀 [STARTUP] FAISS index, ONNX embedding model, and reranker successfully loaded and ready.")
+        except Exception as e:
+            print(f"⚠️ [STARTUP] Warning: Eager loading failed: {e}")
+    else:
+        print("ℹ️ [STARTUP] USE_ONNX is not true: Deferring embedding model loading (lazy).")
 
 
 
@@ -432,6 +456,10 @@ def rag_stream_endpoint(req: QueryRequest, db: Session = Depends(get_db)):
     combined_query, screenshot_used = _build_combined_query(req, db)
 
     def event_stream():
+        # Yield an immediate initialization info event to establish the stream connection,
+        # resetting Vercel/gateway initial response timeouts.
+        yield _emit_ndjson({"type": "info", "status": "initializing", "message": "Connecting to knowledge base..."})
+
         if not req.file_ids:
             cached = get_cached(req.text)
             if cached:

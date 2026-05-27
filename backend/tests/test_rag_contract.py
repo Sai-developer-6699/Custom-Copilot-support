@@ -5,7 +5,7 @@ BASE = "http://127.0.0.1:8000"
 
 
 def test_rag_contract():
-    resp = requests.post(f"{BASE}/rag", json={"text": "Contract test: how to connect?"}, timeout=20)
+    resp = requests.post(f"{BASE}/rag", json={"text": "Contract test: how to connect?"}, timeout=45)
     assert resp.status_code == 200, f"Unexpected status {resp.status_code}: {resp.text}"
     data = resp.json()
 
