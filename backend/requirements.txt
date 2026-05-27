@@ -3,6 +3,7 @@ uvicorn
 groq
 sentence-transformers
 faiss-cpu
+onnxruntime
 python-dotenv
 pydantic
 httpx

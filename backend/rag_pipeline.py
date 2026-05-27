@@ -30,15 +30,71 @@ EMBED_DIM = 384
 DEFAULT_RERANK_THRESHOLD = -3.0
 
 
+class ONNXEmbeddingModel:
+    def __init__(self):
+        from huggingface_hub import hf_hub_download
+        import onnxruntime as ort
+        from transformers import AutoTokenizer
+        
+        print("Downloading/loading ONNX embedding model 'optimum/all-MiniLM-L6-v2'...")
+        # Download ONNX model file from HF Hub
+        model_path = hf_hub_download(repo_id="optimum/all-MiniLM-L6-v2", filename="model.onnx")
+        
+        # Load the ONNX session
+        self.session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
+        
+        # Load the tokenizer
+        self.tokenizer = AutoTokenizer.from_pretrained("optimum/all-MiniLM-L6-v2")
+        print("ONNX embedding model ready.")
+        
+    def encode(self, texts, normalize_embeddings=True, **kwargs):
+        import numpy as np
+        
+        is_single = isinstance(texts, str)
+        if is_single:
+            texts = [texts]
+            
+        # Tokenize inputs
+        encoded = self.tokenizer(texts, padding=True, truncation=True, return_tensors="np")
+        
+        # Dynamically build input feed from inputs expected by the ONNX model
+        input_feed = {}
+        for x in self.session.get_inputs():
+            name = x.name
+            if name in encoded:
+                input_feed[name] = encoded[name]
+        
+        # Run ONNX inference
+        outputs = self.session.run(None, input_feed)
+        token_embeddings = outputs[0]  # [batch_size, seq_len, 384]
+        
+        # Mean pooling
+        attention_mask = encoded["attention_mask"]
+        input_mask_expanded = np.expand_dims(attention_mask, -1)
+        sum_embeddings = np.sum(token_embeddings * input_mask_expanded, axis=1)
+        sum_mask = np.clip(input_mask_expanded.sum(axis=1), a_min=1e-9, a_max=None)
+        embeddings = sum_embeddings / sum_mask
+        
+        # L2 normalize
+        if normalize_embeddings:
+            embeddings = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
+            
+        return embeddings[0] if is_single else embeddings
+
+
 def _get_embedding_model():
     """Lazy singleton — model loads into RAM only once per process."""
     global _embedding_model
     if _embedding_model is None:
-        from sentence_transformers import SentenceTransformer
-        print(f"Loading embedding model '{EMBED_MODEL_NAME}' "
-              f"(first run: downloads ~90MB, then cached)...")
-        _embedding_model = SentenceTransformer(EMBED_MODEL_NAME)
-        print("Embedding model ready.")
+        import os
+        if os.getenv("USE_ONNX") == "true":
+            _embedding_model = ONNXEmbeddingModel()
+        else:
+            from sentence_transformers import SentenceTransformer
+            print(f"Loading embedding model '{EMBED_MODEL_NAME}' "
+                  f"(first run: downloads ~90MB, then cached)...")
+            _embedding_model = SentenceTransformer(EMBED_MODEL_NAME)
+            print("Embedding model ready.")
     return _embedding_model
 
 
