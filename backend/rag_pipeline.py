@@ -254,6 +254,15 @@ class RAGPipeline:
             self.docs  = []
             self.bm25  = None
 
+    def _ensure_index_loaded(self):
+        """Lazy load FAISS index on first request if it exists but hasn't been loaded yet."""
+        if self.index is None and self.index_path.exists():
+            print("Loading FAISS index (lazy, first /rag request)...")
+            self.load_index()
+            if self.index is not None and self.docs is not None:
+                print(f"✅ FAISS index loaded: {len(self.docs)} chunks")
+
+
     def build_index(self, force_rebuild=False):
         """Build (or rebuild) the FAISS index using batch embeddings."""
         if not force_rebuild and self.index is not None:
@@ -480,11 +489,7 @@ class RAGPipeline:
         enable_rerank: bool = True,
     ):
         """Return top-k relevant docs using hybrid search, multi-query expansion, topic pre-routing, and Cross-Encoder reranking."""
-        # Lazy load index on first call (for Render deferred startup)
-        if self.index is None and self.index_path.exists():
-            print("Loading FAISS index (lazy, first /rag request)...")
-            self.load_index()
-            print(f"✅ FAISS index loaded: {len(self.docs)} chunks")
+        self._ensure_index_loaded()
         if self.index is None or self.docs is None:
             raise ValueError("Index not loaded. Call load_index() first.")
 
@@ -809,6 +814,7 @@ Provide a helpful, accurate answer based strictly on the context above."""
         rerank_threshold: Optional[float] = None,
     ):
         """Full RAG pipeline: retrieve docs → assemble prompt → generate answer."""
+        self._ensure_index_loaded()
         if self.index is None or self.docs is None:
             return {
                 "query":     query,
@@ -900,6 +906,7 @@ Provide a helpful, accurate answer based strictly on the context above."""
         generation_temperature: float = 0.1,
     ):
         """Yield streamed answer chunks and finish with a final response payload."""
+        self._ensure_index_loaded()
         if self.index is None or self.docs is None:
             yield {
                 "type": "done",
