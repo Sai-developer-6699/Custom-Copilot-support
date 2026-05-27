@@ -45,8 +45,18 @@ class ONNXEmbeddingModel:
             cache_dir=str(MODEL_CACHE_DIR)
         )
         
+        # Configure single-threaded execution to prevent spin-waiting/CPU throttling on Render
+        import os
+        os.environ["OMP_NUM_THREADS"] = "1"
+        os.environ["MKL_NUM_THREADS"] = "1"
+        
+        sess_options = ort.SessionOptions()
+        sess_options.intra_op_num_threads = 1
+        sess_options.inter_op_num_threads = 1
+        sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+        
         # Load the ONNX session
-        self.session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])
+        self.session = ort.InferenceSession(model_path, sess_options, providers=["CPUExecutionProvider"])
         
         # Load the tokenizer using local cache dir
         self.tokenizer = AutoTokenizer.from_pretrained(
