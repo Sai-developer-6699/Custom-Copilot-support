@@ -1,7 +1,12 @@
 fastapi
 uvicorn
 groq
-sentence-transformers
+# sentence-transformers is intentionally excluded from this file.
+# On Render (USE_ONNX=true), embeddings run via onnxruntime (see onnx_model/).
+# The CrossEncoder reranker is disabled on Render via the RENDER=true env var.
+# This avoids installing PyTorch (~600MB+) which causes OOM on Render's 512MB free tier.
+# For LOCAL development, install requirements-dev.txt which adds sentence-transformers.
+transformers
 faiss-cpu
 onnxruntime
 python-dotenv

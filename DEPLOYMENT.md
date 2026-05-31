@@ -42,8 +42,11 @@ Deploy the Python FastAPI application as a **Web Service** on Render.
    * **Name:** `support-copilot-rag` (or custom name)
    * **Language:** `Python 3`
    * **Root Directory:** `backend` *(Crucial: pointing to the subfolder)*
-   * **Build Command:** `pip install --no-cache-dir -r requirements.txt`
+   * **Build Command:** `chmod +x render-build.sh && ./render-build.sh`
    * **Start Command:** `python -m uvicorn main:app --host 0.0.0.0 --port $PORT`
+
+   > **Why a custom build script?**  
+   > Render's Free Tier has only **512MB RAM**. Installing `sentence-transformers` pulls in PyTorch + CUDA libraries (~600MB–1.2GB), causing OOM crashes during startup. `render-build.sh` installs a **CPU-only** PyTorch wheel first, then the lean `requirements.txt` (which deliberately excludes `sentence-transformers`). Embeddings run via ONNX Runtime and the CrossEncoder reranker is disabled on Render.
 
 ### 2. Configure Environment Variables
 Navigate to the **Environment** tab of your Render Web Service and add the following keys:
@@ -53,6 +56,8 @@ Navigate to the **Environment** tab of your Render Web Service and add the follo
 | `DATABASE_URL` | Supabase PostgreSQL Connection URI | `postgresql://postgres:[password]@...` |
 | `GROQ_API_KEY` | Groq Developer API Key | `gsk_...` |
 | `PYTHON_VERSION` | Python Runtime version | `3.13.0` (or similar) |
+| `USE_ONNX` | Enable ONNX Runtime for embeddings (required on Render) | `true` |
+| `RENDER` | Signals Render environment; disables CrossEncoder reranker | `true` |
 
 ### ⚠️ Render Free Tier Limitations to Keep in Mind:
 * **Spin-Down:** Render's free tier web services spin down (go to sleep) after 15 minutes of inactivity. When a new request arrives, Render will spin it back up, which can cause a delay of **50–90 seconds** on the initial page load.

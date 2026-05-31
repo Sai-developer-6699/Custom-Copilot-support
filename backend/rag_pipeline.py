@@ -111,7 +111,11 @@ _model_lock = threading.Lock()
 _reranker_lock = threading.Lock()
 
 def _get_embedding_model():
-    """Lazy singleton — model loads into RAM only once per process."""
+    """Lazy singleton — model loads into RAM only once per process.
+
+    On Render (USE_ONNX=true), uses the ONNX model from backend/onnx_model/.
+    Locally (USE_ONNX not set), falls back to sentence-transformers if installed.
+    """
     global _embedding_model
     with _model_lock:
         if _embedding_model is None:
@@ -119,11 +123,18 @@ def _get_embedding_model():
             if os.getenv("USE_ONNX") == "true":
                 _embedding_model = ONNXEmbeddingModel()
             else:
-                from sentence_transformers import SentenceTransformer
-                print(f"Loading embedding model '{EMBED_MODEL_NAME}' "
-                      f"(first run: downloads ~90MB, then cached)...")
-                _embedding_model = SentenceTransformer(EMBED_MODEL_NAME)
-                print("Embedding model ready.")
+                try:
+                    from sentence_transformers import SentenceTransformer
+                    print(f"Loading embedding model '{EMBED_MODEL_NAME}' "
+                          f"(first run: downloads ~90MB, then cached)...")
+                    _embedding_model = SentenceTransformer(EMBED_MODEL_NAME)
+                    print("Embedding model ready.")
+                except ImportError:
+                    raise RuntimeError(
+                        "sentence-transformers is not installed and USE_ONNX is not set to 'true'. "
+                        "Either install sentence-transformers (pip install -r requirements-dev.txt) "
+                        "or set the USE_ONNX=true environment variable to use the ONNX model."
+                    )
     return _embedding_model
 
 
@@ -131,19 +142,29 @@ def _get_embedding_model():
 _reranker_model = None
 
 def _get_reranker_model():
-    """Lazy singleton for CrossEncoder reranker model."""
+    """Lazy singleton for CrossEncoder reranker model.
+
+    Returns None (gracefully disabled) when:
+      - RENDER=true  — Render Free Tier has only 512MB RAM; sentence-transformers
+                       is excluded from requirements.txt to prevent OOM crashes.
+      - sentence-transformers is not installed (ImportError) — same reason.
+    """
     global _reranker_model
     with _reranker_lock:
         if _reranker_model is None:
             import os
-            # Disable heavy reranker on Render Free Tier to avoid Out Of Memory (512MB RAM) crashes
+            # Disable heavy reranker on Render Free Tier (512MB RAM limit)
             if os.getenv("RENDER") == "true":
                 print("[RERANK] Running on Render: Disabling Cross-Encoder reranker to prevent Out-Of-Memory (OOM) crashes.")
                 return None
-            from sentence_transformers import CrossEncoder
-            print("Loading CrossEncoder model 'cross-encoder/ms-marco-MiniLM-L-6-v2'...")
-            _reranker_model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
-            print("CrossEncoder model ready.")
+            try:
+                from sentence_transformers import CrossEncoder
+                print("Loading CrossEncoder model 'cross-encoder/ms-marco-MiniLM-L-6-v2'...")
+                _reranker_model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+                print("CrossEncoder model ready.")
+            except ImportError:
+                print("[RERANK] sentence-transformers not installed — Cross-Encoder reranker disabled.")
+                return None
     return _reranker_model
 
 

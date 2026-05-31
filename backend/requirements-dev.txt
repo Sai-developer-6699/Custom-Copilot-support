@@ -1,0 +1,9 @@
+# Local development requirements (extends requirements.txt).
+# Install: pip install -r requirements-dev.txt
+#
+# sentence-transformers brings in PyTorch (~600MB), which is fine locally
+# but causes OOM crashes on Render's 512MB Free Tier.
+# It is only needed when USE_ONNX is NOT set to "true".
+
+-r requirements.txt
+sentence-transformers
