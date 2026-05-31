@@ -50,34 +50,40 @@ export default function HeroSection() {
             className="inline-flex items-center space-x-2 bg-zinc-900/80 backdrop-blur border border-zinc-800/80 px-3.5 py-1.5 rounded-full text-xs font-semibold tracking-wider text-indigo-400 mb-6 uppercase shadow-lg shadow-indigo-500/5"
           >
             <Shield className="w-3.5 h-3.5 animate-pulse" />
-            <span>Production-Grade Context Architecture</span>
+            <span>Hybrid RAG · Streaming · LLM-as-a-Judge</span>
           </motion.div>
 
           {/* Headline Title */}
           <motion.h1
             variants={itemVariants}
-            className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight bg-gradient-to-b from-zinc-50 via-zinc-200 to-zinc-500 bg-clip-text text-transparent mb-6 max-w-4xl"
+            className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-6 max-w-4xl"
           >
-            Beyond Naive RAG API Wrappers
+            <span className="bg-gradient-to-r from-indigo-300 via-violet-300 to-purple-400 bg-clip-text text-transparent">
+              Atlas Copilot
+            </span>
+            <br />
+            <span className="bg-gradient-to-b from-zinc-50 via-zinc-200 to-zinc-500 bg-clip-text text-transparent text-3xl sm:text-5xl md:text-6xl">
+              Beyond Naive RAG Wrappers
+            </span>
           </motion.h1>
 
           {/* Supporting Copy */}
           <motion.p
             variants={itemVariants}
-            className="text-base sm:text-lg md:text-xl text-zinc-400 font-medium max-w-2xl mb-10 leading-relaxed"
+            className="text-base sm:text-lg md:text-xl text-zinc-400 font-medium max-w-2xl mb-10 leading-relaxed px-2 sm:px-0"
           >
-            An advanced Customer Support Copilot engineered with hybrid dense-sparse search, 
-            Cross-Encoder context reranking, table-aware OCR, and background LLM-as-a-judge telemetry.
+            An intelligent AI support assistant engineered with hybrid dense-sparse retrieval,
+            Cross-Encoder reranking, streaming answers, and LLM-as-a-judge quality telemetry.
           </motion.p>
 
           {/* Action CTAs */}
-          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center gap-4">
+          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             {/* Primary Launch Dashboard Button */}
             <Link
               to="/dashboard"
-              className="group relative flex items-center justify-center space-x-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-100 font-bold px-8 py-4 rounded-xl border border-zinc-800 shadow-2xl hover:shadow-indigo-500/10 transition-all duration-200 hover:-translate-y-0.5 overflow-hidden"
+              className="group relative flex items-center justify-center space-x-2 w-full sm:w-auto bg-zinc-900 hover:bg-zinc-800 text-zinc-100 font-bold px-8 py-4 rounded-xl border border-zinc-800 shadow-2xl hover:shadow-indigo-500/10 transition-all duration-200 hover:-translate-y-0.5 overflow-hidden"
             >
-              <span>Launch Support Copilot</span>
+              <span>Launch Atlas Copilot</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               <BorderBeam size={120} duration={8} borderWidth={1.5} colorFrom="#6366f1" colorTo="#a855f7" />
             </Link>
@@ -87,10 +93,10 @@ export default function HeroSection() {
               onClick={() => {
                 document.getElementById("workflow-visualizer")?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="flex items-center space-x-2 bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 font-medium px-6 py-4 rounded-xl border border-zinc-900 hover:border-zinc-800 transition-all"
+              className="flex items-center justify-center space-x-2 w-full sm:w-auto bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 font-medium px-6 py-4 rounded-xl border border-zinc-900 hover:border-zinc-800 transition-all"
             >
               <Terminal className="w-4 h-4" />
-              <span>Explore Custom Pipeline</span>
+              <span>Explore Pipeline</span>
             </button>
           </motion.div>
         </motion.div>

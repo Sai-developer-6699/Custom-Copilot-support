@@ -47,28 +47,16 @@ const Dashboard = () => {
       
       {/* Main Layout */}
       <div className="flex relative">
-        {/* Main Content */}
+        {/* Main Content — full width on mobile, leaves room for sidebar on lg+ */}
         <div className="flex-1 min-w-0 lg:pr-[450px]">
-          <main className="px-4 sm:px-6 py-8 max-w-7xl mx-auto">
-            <div className="mb-8 flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-extrabold bg-gradient-to-r from-zinc-50 via-zinc-100 to-zinc-400 bg-clip-text text-transparent tracking-tight mb-2">
-                  Support Tickets Dashboard
-                </h2>
-                <p className="text-zinc-400 text-sm">
-                  Monitor and analyze customer support interactions with AI-powered insights.
-                </p>
-              </div>
-              {/* Mobile Chat Toggle Button */}
-              <button
-                onClick={toggleChatSidebar}
-                className="lg:hidden fixed bottom-6 right-6 bg-gradient-to-tr from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white p-3.5 rounded-full shadow-xl shadow-blue-500/30 z-50 transition-all duration-200 hover:scale-105"
-                title="Open AI Assistant"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </button>
+          <main className="px-3 sm:px-6 py-6 sm:py-8 max-w-7xl mx-auto">
+            <div className="mb-6 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl font-extrabold bg-gradient-to-r from-zinc-50 via-zinc-100 to-zinc-400 bg-clip-text text-transparent tracking-tight mb-1.5">
+                Support Tickets
+              </h2>
+              <p className="text-zinc-400 text-xs sm:text-sm">
+                Monitor and analyze customer support interactions with AI-powered insights.
+              </p>
             </div>
             
             <TicketTable onTicketClick={handleTicketClick} />
@@ -89,11 +77,24 @@ const Dashboard = () => {
         )}
       </div>
       
+      {/* Mobile Chat FAB */}
+      <button
+        onClick={toggleChatSidebar}
+        className="lg:hidden fixed bottom-6 right-6 bg-gradient-to-tr from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white p-4 rounded-2xl shadow-xl shadow-indigo-500/30 z-50 transition-all duration-200 hover:scale-105 active:scale-95"
+        title="Open AI Assistant"
+        aria-label="Open AI Assistant"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+      </button>
+
       {/* Terminal Toggle Button */}
       <TerminalToggle isVisible={isTerminalVisible} onToggle={toggleTerminal} />
       
       {/* Backend Terminal */}
       <BackendTerminal isVisible={isTerminalVisible} onToggle={toggleTerminal} />
+
       
       <ResponseModal 
         isOpen={isModalOpen}

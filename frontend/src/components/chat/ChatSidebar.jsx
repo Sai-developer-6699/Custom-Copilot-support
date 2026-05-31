@@ -321,7 +321,7 @@ const ChatSidebar = ({ onSubmit, onClose, isOpen = true }) => {
       <div className="flex items-center justify-between p-4 border-b border-zinc-900 bg-zinc-950/20 rounded-t-2xl">
         <div className="flex items-center space-x-2">
           <Bot className="h-5 w-5 text-indigo-400 animate-pulse" />
-          <h2 className="font-semibold text-zinc-100 tracking-tight text-sm">AI Copilot Assistant</h2>
+          <h2 className="font-semibold text-zinc-100 tracking-tight text-sm">Atlas Copilot</h2>
         </div>
         <div className="flex items-center space-x-1">
           <Button
