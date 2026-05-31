@@ -5,6 +5,9 @@ import os
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OMP_WAIT_POLICY"] = "PASSIVE"
+# Disable GPU discovery/use in ONNX runtime and CUDA to bypass device discovery hangs
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["NVIDIA_VISIBLE_DEVICES"] = "none"
 
 import numpy as np
 import pickle
@@ -103,19 +106,24 @@ class ONNXEmbeddingModel:
         return embeddings[0] if is_single else embeddings
 
 
+import threading
+_model_lock = threading.Lock()
+_reranker_lock = threading.Lock()
+
 def _get_embedding_model():
     """Lazy singleton — model loads into RAM only once per process."""
     global _embedding_model
-    if _embedding_model is None:
-        import os
-        if os.getenv("USE_ONNX") == "true":
-            _embedding_model = ONNXEmbeddingModel()
-        else:
-            from sentence_transformers import SentenceTransformer
-            print(f"Loading embedding model '{EMBED_MODEL_NAME}' "
-                  f"(first run: downloads ~90MB, then cached)...")
-            _embedding_model = SentenceTransformer(EMBED_MODEL_NAME)
-            print("Embedding model ready.")
+    with _model_lock:
+        if _embedding_model is None:
+            import os
+            if os.getenv("USE_ONNX") == "true":
+                _embedding_model = ONNXEmbeddingModel()
+            else:
+                from sentence_transformers import SentenceTransformer
+                print(f"Loading embedding model '{EMBED_MODEL_NAME}' "
+                      f"(first run: downloads ~90MB, then cached)...")
+                _embedding_model = SentenceTransformer(EMBED_MODEL_NAME)
+                print("Embedding model ready.")
     return _embedding_model
 
 
@@ -125,16 +133,17 @@ _reranker_model = None
 def _get_reranker_model():
     """Lazy singleton for CrossEncoder reranker model."""
     global _reranker_model
-    if _reranker_model is None:
-        import os
-        # Disable heavy reranker on Render Free Tier to avoid Out Of Memory (512MB RAM) crashes
-        if os.getenv("RENDER") == "true":
-            print("[RERANK] Running on Render: Disabling Cross-Encoder reranker to prevent Out-Of-Memory (OOM) crashes.")
-            return None
-        from sentence_transformers import CrossEncoder
-        print("Loading CrossEncoder model 'cross-encoder/ms-marco-MiniLM-L-6-v2'...")
-        _reranker_model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
-        print("CrossEncoder model ready.")
+    with _reranker_lock:
+        if _reranker_model is None:
+            import os
+            # Disable heavy reranker on Render Free Tier to avoid Out Of Memory (512MB RAM) crashes
+            if os.getenv("RENDER") == "true":
+                print("[RERANK] Running on Render: Disabling Cross-Encoder reranker to prevent Out-Of-Memory (OOM) crashes.")
+                return None
+            from sentence_transformers import CrossEncoder
+            print("Loading CrossEncoder model 'cross-encoder/ms-marco-MiniLM-L-6-v2'...")
+            _reranker_model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+            print("CrossEncoder model ready.")
     return _reranker_model
 
 
@@ -199,6 +208,7 @@ class RAGPipeline:
         self.docs  = None
         self.bm25  = None
         self.index_metadata = None
+        self._index_lock = threading.Lock()
 
     # ------------------------------------------------------------------
     # Embedding helpers
@@ -333,11 +343,12 @@ class RAGPipeline:
 
     def _ensure_index_loaded(self):
         """Lazy load FAISS index on first request if it exists but hasn't been loaded yet."""
-        if self.index is None and self.index_path.exists():
-            print("Loading FAISS index (lazy, first /rag request)...")
-            self.load_index()
-            if self.index is not None and self.docs is not None:
-                print(f"✅ FAISS index loaded: {len(self.docs)} chunks")
+        with self._index_lock:
+            if self.index is None and self.index_path.exists():
+                print("Loading FAISS index (lazy, first /rag request)...")
+                self.load_index()
+                if self.index is not None and self.docs is not None:
+                    print(f"✅ FAISS index loaded: {len(self.docs)} chunks")
 
 
     def build_index(self, force_rebuild=False):

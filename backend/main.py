@@ -4,6 +4,9 @@ import os
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OMP_WAIT_POLICY"] = "PASSIVE"
+# Disable GPU discovery/use in ONNX runtime and CUDA to bypass device discovery hangs
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["NVIDIA_VISIBLE_DEVICES"] = "none"
 
 import json
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
@@ -43,31 +46,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+async def eager_load_models_async():
+    """Background task to pre-load ML models and FAISS index without blocking server startup."""
+    print("🚀 [STARTUP-BG] Eager background loading task started...")
+    # Add a short delay to allow Uvicorn to bind to the port first
+    import asyncio
+    await asyncio.sleep(1)
+    try:
+        from rag_pipeline import rag_pipeline, _get_embedding_model, _get_reranker_model
+        # Eagerly load FAISS and BM25 index
+        print("🚀 [STARTUP-BG] Loading FAISS index...")
+        rag_pipeline._ensure_index_loaded()
+        # Eagerly initialize ONNX embedding model
+        print("🚀 [STARTUP-BG] Loading ONNX embedding model...")
+        _get_embedding_model()
+        # Eagerly initialize reranker model (if enabled / not on Render)
+        print("🚀 [STARTUP-BG] Loading CrossEncoder reranker...")
+        _get_reranker_model()
+        print("🚀 [STARTUP-BG] Eager background loading successfully completed.")
+    except Exception as e:
+        print(f"⚠️ [STARTUP-BG] Warning: Background eager loading failed: {e}")
+
+
 # ---- Startup: create DB tables ----
 @app.on_event("startup")
-def startup():
+async def startup():
     """Create all tables on startup if they don't already exist."""
-    Base.metadata.create_all(bind=engine)
+    # Run blocking SQLAlchemy table creation in a separate thread pool using anyio
+    from anyio import to_thread
+    await to_thread.run_sync(Base.metadata.create_all, engine)
     print("✅ Database tables ready")
     
-    # Eagerly pre-load index and ONNX embedding model on startup when USE_ONNX is enabled.
-    # This prevents the first request from timing out on Vercel's 10s proxy limit.
-    # We only do this if USE_ONNX is true, because standard SentenceTransformer/PyTorch
-    # is too heavy (~350MB RAM) and causes OOM crashes on Render. ONNX is lightweight (~80-100MB RAM).
+    # Eagerly pre-load index and ONNX embedding model in the background.
+    # We do this asynchronously to prevent blocking Uvicorn from binding to the port,
+    # avoiding Render's "Port scan timeout reached" deployment failure.
     import os
     if os.getenv("USE_ONNX") == "true":
-        print("🚀 [STARTUP] USE_ONNX is true: Eagerly loading FAISS index, ONNX embedding model, and reranker...")
-        try:
-            from rag_pipeline import rag_pipeline, _get_embedding_model, _get_reranker_model
-            # Eagerly load FAISS and BM25 index
-            rag_pipeline._ensure_index_loaded()
-            # Eagerly initialize ONNX embedding model
-            _get_embedding_model()
-            # Eagerly initialize reranker model (if enabled / not on Render)
-            _get_reranker_model()
-            print("🚀 [STARTUP] FAISS index, ONNX embedding model, and reranker successfully loaded and ready.")
-        except Exception as e:
-            print(f"⚠️ [STARTUP] Warning: Eager loading failed: {e}")
+        import asyncio
+        asyncio.create_task(eager_load_models_async())
     else:
         print("ℹ️ [STARTUP] USE_ONNX is not true: Deferring embedding model loading (lazy).")
 
