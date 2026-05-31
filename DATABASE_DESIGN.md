@@ -1,4 +1,4 @@
-# 🗄️ Database Design — Atlan AI Customer Support Copilot
+# 🗄️ Database Design — Atlas Copilot
 
 ## Overview
 

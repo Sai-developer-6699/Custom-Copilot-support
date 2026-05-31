@@ -57,7 +57,7 @@ export default function LandingPage() {
           </div>
 
           <div className="pt-16 border-t border-zinc-900 text-zinc-600 text-[10px] tracking-wide flex flex-col sm:flex-row items-center justify-between gap-4">
-            <span>© 2026 Atlan-AI Support Copilot Portfolio. Built for LinkedIn Showcase.</span>
+            <span>© 2026 Atlas Copilot. Built for LinkedIn Showcase.</span>
             <div className="flex space-x-4">
               <a href="#" className="hover:text-zinc-400 transition-colors">Documentation</a>
               <a href="#" className="hover:text-zinc-400 transition-colors flex items-center gap-1">

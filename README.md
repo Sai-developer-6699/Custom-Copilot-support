@@ -1,4 +1,4 @@
-# 🤖 Support Copilot RAG — Multi-Source Information Retrieval System
+# 🤖 Atlas Copilot — AI-Powered Support Intelligence
 
 <div align="center">
 
@@ -23,7 +23,7 @@ A full-stack AI-powered customer support system combining RAG (Retrieval-Augment
 
 ## 📖 Overview
 
-**Atlan AI Support Copilot** is a high-performance, multi-source **Information Retrieval (RAG)** and **Ticket Automation** system designed for technical support workflows. Built as an enterprise-grade showcase, the platform optimizes ticket classification, semantic knowledge retrieval, and automated routing.
+**Atlas Copilot** is a high-performance, multi-source **Information Retrieval (RAG)** and **Ticket Automation** system designed for technical support workflows. Built as an enterprise-grade showcase, the platform optimizes ticket classification, semantic knowledge retrieval, and automated routing.
 
 The project integrates a dual-engine vector/lexical search pipeline, few-shot LLM classification, and an interactive real-time telemetry dashboard.
 
@@ -298,7 +298,7 @@ flowchart LR
 ### Health Check
 ```bash
 GET /
-Response: {"message": "✅ Customer Support Copilot Backend running"}
+Response: {"message": "Atlas Copilot — running"}
 ```
 
 ### Classification

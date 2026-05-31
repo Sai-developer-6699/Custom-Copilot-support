@@ -1,6 +1,6 @@
 # Frontend-Backend Integration Setup
 
-This document explains how to run the integrated Atlan AI application with both frontend and backend services.
+This document explains how to run **Atlas Copilot** with both frontend and backend services.
 
 ## Prerequisites
 

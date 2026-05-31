@@ -32,8 +32,8 @@ import mimetypes
 
 
 app = FastAPI(
-    title="Atlan AI Customer Support Copilot",
-    description="AI-powered support system with RAG, ticket classification, and smart routing.",
+    title="Atlas Copilot",
+    description="AI-powered support intelligence with hybrid RAG, streaming answers, and LLM-as-a-judge telemetry.",
     version="1.0.0"
 )
 
@@ -203,7 +203,7 @@ def _emit_ndjson(payload: dict) -> str:
 # ---- Health Check ----
 @app.get("/")
 def root():
-    return {"message": "Atlan AI Customer Support Copilot — running"}
+    return {"message": "Atlas Copilot — running"}
 
 
 @app.get("/health")

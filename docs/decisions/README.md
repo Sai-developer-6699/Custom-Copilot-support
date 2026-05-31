@@ -1,6 +1,6 @@
 # Architecture Decisions
 
-This directory captures the major architectural, engineering, and scaling decisions behind the Atlan AI copilot.
+This directory captures the major architectural, engineering, and scaling decisions behind **Atlas Copilot**.
 
 ## Decision Log
 

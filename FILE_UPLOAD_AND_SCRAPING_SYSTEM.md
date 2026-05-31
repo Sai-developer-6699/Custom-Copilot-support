@@ -1,6 +1,6 @@
 # File Upload and Web Scraping System
 
-This document explains the comprehensive file upload system and web scraping functionality implemented for the Atlan AI system.
+This document explains the comprehensive file upload system and web scraping functionality implemented for **Atlas Copilot**.
 
 ## Overview
 
@@ -471,4 +471,4 @@ The file upload and web scraping system provides a comprehensive knowledge base 
 - Provide intelligent responses
 - Scale with additional content
 
-This system makes the Atlan AI assistant much more powerful and capable of handling a wide variety of user queries with up-to-date information from multiple sources.
+This system makes **Atlas Copilot** much more powerful and capable of handling a wide variety of user queries with up-to-date information from multiple sources.

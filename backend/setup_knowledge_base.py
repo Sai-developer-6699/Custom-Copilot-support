@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Setup script for Atlan AI Knowledge Base
+Setup script for Atlas Copilot Knowledge Base
 This script scrapes documentation and builds the knowledge base index
 """
 
@@ -16,7 +16,7 @@ from rag_pipeline import RAGPipeline
 from data_loader import DataLoader
 
 def main():
-    print("🚀 Setting up Atlan AI Knowledge Base...")
+    print("🚀 Setting up Atlas Copilot Knowledge Base...")
     print("=" * 50)
     
     # Step 1: Scrape documentation
@@ -83,7 +83,7 @@ def main():
     
     print("\n🎉 Knowledge Base Setup Complete!")
     print("=" * 50)
-    print("Your Atlan AI system is ready to use!")
+    print("Your Atlas Copilot system is ready to use!")
     print("\nNext steps:")
     print("1. Start the backend server: python -m uvicorn main:app --reload")
     print("2. Start the frontend: npm run dev")

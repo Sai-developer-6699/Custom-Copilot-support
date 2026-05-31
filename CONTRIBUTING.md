@@ -1,4 +1,4 @@
-# Contributing to Atlan AI Customer Support Copilot
+# Contributing to Atlas Copilot
 
 Thank you for your interest in contributing! This document provides guidelines and information for contributing to this project.
 
