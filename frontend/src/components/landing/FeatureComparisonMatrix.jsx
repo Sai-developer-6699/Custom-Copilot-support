@@ -100,7 +100,7 @@ export default function FeatureComparisonMatrix() {
     <section id="feature-matrix" className="py-24 bg-zinc-950 px-6 max-w-7xl mx-auto border-b border-zinc-900">
       <div className="text-center mb-16">
         <h2 className="text-3xl md:text-5xl font-extrabold bg-gradient-to-r from-zinc-50 via-zinc-100 to-zinc-400 bg-clip-text text-transparent mb-4 tracking-tight">
-          How Atlan-AI Solves RAG Challenges
+          How Atlas Copilot Solves RAG Challenges
         </h2>
         <p className="text-zinc-400 text-sm md:text-base max-w-2xl mx-auto">
           A side-by-side technical breakdown showing how custom context architecture compares to average API wrappers.

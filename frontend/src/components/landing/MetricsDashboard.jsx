@@ -20,18 +20,29 @@ export default function MetricsDashboard() {
         }
         const data = await response.json();
         
-        // Parse database telemetry averages
-        // If data returns faithfulness_avg as float (0.94), multiply by 100 for display
-        const faithfulnessVal = data.faithfulness_avg <= 1.0 ? data.faithfulness_avg * 100 : data.faithfulness_avg;
-        const relevanceVal = data.relevance_avg <= 1.0 ? data.relevance_avg * 100 : data.relevance_avg;
+        // Parse database telemetry averages.
+        // Guard against null/undefined/NaN — any of those fall back to the baseline.
+        const rawFaith = data.faithfulness_avg;
+        const rawRel   = data.relevance_avg;
+        const rawLat   = data.latency_avg;
+        const rawEvals = data.total_evaluations;
 
-        setStats({
-          faithfulness: Math.round(faithfulnessVal * 10) / 10,
-          relevance: Math.round(relevanceVal * 10) / 10,
-          latency: data.latency_avg,
-          totalEvaluations: data.total_evaluations,
+        // Convert 0-1 floats to percentages; leave values already >1 as-is
+        const toPercent = (v) => {
+          if (v == null || !isFinite(v) || v <= 0) return null; // null = keep baseline
+          return v <= 1.0 ? v * 100 : v;
+        };
+
+        const faithfulnessVal = toPercent(rawFaith);
+        const relevanceVal    = toPercent(rawRel);
+
+        setStats((prev) => ({
+          faithfulness:     faithfulnessVal != null ? Math.round(faithfulnessVal * 10) / 10 : prev.faithfulness,
+          relevance:        relevanceVal    != null ? Math.round(relevanceVal    * 10) / 10 : prev.relevance,
+          latency:          rawLat   > 0 && isFinite(rawLat)   ? rawLat   : prev.latency,
+          totalEvaluations: rawEvals > 0 && isFinite(rawEvals) ? rawEvals : prev.totalEvaluations,
           loading: false,
-        });
+        }));
       } catch (err) {
         console.warn("Metrics endpoint cold-start or offline. Using baseline defaults.", err);
         setStats((prev) => ({ ...prev, loading: false })); // Fall back to baseline

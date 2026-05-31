@@ -136,7 +136,7 @@ final_context = reranked[:5]`,
         code: `# LLM call inside generate_answer
 system_prompt = "You are a support engineer. Reply using context..."
 completion = groq_client.chat.completions.create(
-    model="llama3-70b-8192",
+    model="llama-3.1-8b-instant",
     messages=[{"role": "system", "content": system_prompt},
               {"role": "user", "content": f"Context: {context}\\nQuery: {query}"}],
     temperature=0.0
