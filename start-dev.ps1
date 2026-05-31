@@ -1,4 +1,4 @@
-Write-Host "Starting Atlan AI Development Environment..." -ForegroundColor Green
+Write-Host "Starting Atlas Copilot Development Environment..." -ForegroundColor Green
 Write-Host ""
 
 Write-Host "Starting Backend Server..." -ForegroundColor Yellow

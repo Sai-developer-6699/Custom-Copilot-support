@@ -131,3 +131,5 @@ The frontend contains a [vercel.json](file:///d:/CodingProjects/React%20Project/
    }
    ```
 2. **Verify CORS Settings:** If you experience connection errors between the frontend and backend, verify that CORS middleware in `backend/main.py` allows requests from your Vercel deployment domain.
+3. **Handle Resource Contention and Crashes:** If you experience CPU locks, slow response issues, or Out of Memory (OOM) failures, please review the **[Deployment Challenges & Solutions Case Study](./DEPLOYMENT_CHALLENGES.md)**, which outlines how the system uses single-threaded ONNX execution and background task scheduling to run reliably.
+

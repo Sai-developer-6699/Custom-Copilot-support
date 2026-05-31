@@ -409,6 +409,9 @@ The project is structured for easy cloud deployment:
 
 For a complete, step-by-step walkthrough covering database migrations, environment variables, Vercel proxies, and Render Free Tier spin-down considerations, see the **[Production Deployment Guide](./DEPLOYMENT.md)**.
 
+For an in-depth case study on how we optimized the backend to run on shared, single-core 512MB RAM environments—covering CPU thread spin-lock controls, ONNX Runtime embedding compilation, and Server-Sent Event keepalive streaming—see the **[Deployment Challenges & Solutions Case Study](./DEPLOYMENT_CHALLENGES.md)**.
+
+
 ---
 
 ## 📊 Project Status
