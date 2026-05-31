@@ -75,7 +75,7 @@ async def startup():
     # Run blocking SQLAlchemy table creation in a separate thread pool using anyio
     from anyio import to_thread
     await to_thread.run_sync(Base.metadata.create_all, engine)
-    print("✅ Database tables ready")
+    print("[SUCCESS] Database tables ready")
     
     # Eagerly pre-load index and ONNX embedding model in the background.
     # We do this asynchronously to prevent blocking Uvicorn from binding to the port,
@@ -635,7 +635,7 @@ def _run_async_evaluation(ticket_id: int, query: str, response_data: dict):
                 )
                 db.add(chunk_source)
             db.commit()
-            print(f"✅ Telemetry evaluation logged for ticket {ticket_id}")
+            print(f"[SUCCESS] Telemetry evaluation logged for ticket {ticket_id}")
         except Exception as e:
             db.rollback()
             print(f"Error logging telemetry for ticket {ticket_id}: {e}")

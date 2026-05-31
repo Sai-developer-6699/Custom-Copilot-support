@@ -1,11 +1,19 @@
 import json
-import requests
+import sys
+from pathlib import Path
+import pytest
+from fastapi.testclient import TestClient
 
-BASE = "http://127.0.0.1:8000"
+# Add parent directory to sys.path to find main.py
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from main import app
+
+client = TestClient(app)
 
 
 def test_rag_contract():
-    resp = requests.post(f"{BASE}/rag", json={"text": "Contract test: how to connect?"}, timeout=45)
+    resp = client.post("/rag", json={"text": "Contract test: how to connect?"})
     assert resp.status_code == 200, f"Unexpected status {resp.status_code}: {resp.text}"
     data = resp.json()
 
@@ -19,10 +27,10 @@ def test_rag_contract():
 
 
 def test_rag_stream_contract():
-    r = requests.post(f"{BASE}/rag/stream", json={"text": "Contract test: streaming"}, stream=True, timeout=60)
-    final = None
-    try:
-        for line in r.iter_lines(decode_unicode=True):
+    with client.stream("POST", "/rag/stream", json={"text": "Contract test: streaming"}) as r:
+        assert r.status_code == 200, f"Unexpected status {r.status_code}"
+        final = None
+        for line in r.iter_lines():
             if not line:
                 continue
             try:
@@ -32,11 +40,6 @@ def test_rag_stream_contract():
             if obj.get('type') == 'done':
                 final = obj.get('response')
                 break
-    finally:
-        try:
-            r.close()
-        except Exception:
-            pass
 
     assert final is not None, "No final 'done' payload received from stream"
     assert 'sources' in final and isinstance(final['sources'], list)
@@ -46,3 +49,4 @@ def test_rag_stream_contract():
         assert 'score' in s
         assert 'doc_title' in s
         assert 'doc_url' in s
+

@@ -369,7 +369,7 @@ class RAGPipeline:
                 print("Loading FAISS index (lazy, first /rag request)...")
                 self.load_index()
                 if self.index is not None and self.docs is not None:
-                    print(f"✅ FAISS index loaded: {len(self.docs)} chunks")
+                    print(f"[SUCCESS] FAISS index loaded: {len(self.docs)} chunks")
 
 
     def build_index(self, force_rebuild=False):
