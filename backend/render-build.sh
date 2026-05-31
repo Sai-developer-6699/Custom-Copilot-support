@@ -13,7 +13,7 @@ set -e
 
 echo "==> Installing CPU-only PyTorch (lightweight, ~200MB vs ~1.2GB GPU)..."
 pip install --no-cache-dir \
-    torch==2.2.2 \
+    torch \
     --index-url https://download.pytorch.org/whl/cpu
 
 echo "==> Installing remaining dependencies (requirements.txt)..."
