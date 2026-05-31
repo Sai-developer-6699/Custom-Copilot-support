@@ -1,10 +1,21 @@
-import React from "react";
+import React, { useEffect } from "react";
 import "./App.css";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { BackendProvider } from "./contexts/BackendContext";
 import { TicketProvider } from "./contexts/TicketContext";
 import LandingPage from "./components/layout/LandingPage";
 import Dashboard from "./components/layout/Dashboard";
+
+// Component to reset scroll position on navigation
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 
 function App() {
   return (
@@ -12,6 +23,7 @@ function App() {
       <TicketProvider>
         <BackendProvider>
           <BrowserRouter>
+            <ScrollToTop />
             <Routes>
               {/* Public portfolio page */}
               <Route path="/" element={<LandingPage />} />
